@@ -48,7 +48,7 @@
     --font-mono-sys: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   }
   @media (prefers-color-scheme: dark){
-    :root{
+    :root:not([data-theme="light"]){
       --bg: #121110; --bg-raised: #1B1A18; --surface-2: #222120; --surface-sunken: #0E0D0C;
       --hairline: rgba(255,255,255,.08); --hairline-strong: rgba(255,255,255,.14);
       --ink: #F3F0EB; --ink-soft: #A8A29A; --ink-faint: #726C65;
@@ -62,6 +62,23 @@
       --shadow-md: 0 24px 64px rgba(0,0,0,.5);
     }
   }
+  /* Explicit "dark" override applies the same values regardless of the
+     system preference — this is what makes the toggle a real override
+     rather than just a readout of prefers-color-scheme. */
+  :root[data-theme="dark"]{
+    --bg: #121110; --bg-raised: #1B1A18; --surface-2: #222120; --surface-sunken: #0E0D0C;
+    --hairline: rgba(255,255,255,.08); --hairline-strong: rgba(255,255,255,.14);
+    --ink: #F3F0EB; --ink-soft: #A8A29A; --ink-faint: #726C65;
+    --accent: #C4826F; --accent-ink: #D49781; --accent-soft: rgba(196,130,111,.16); --accent-ring: rgba(196,130,111,.35);
+    --danger: #D2716A; --danger-soft: rgba(210,113,106,.16);
+    --ok: #8AA98F; --ok-soft: rgba(138,169,143,.16);
+    --brass: #7FA0BE; --warn: #7FA0BE; --brass-soft: rgba(127,160,190,.16); --warn-soft: rgba(127,160,190,.16);
+    --slate: #8A9AA5; --slate-soft: rgba(138,154,165,.14);
+    --shadow-sm: 0 0 0 0.5px var(--hairline), 0 1px 2px rgba(0,0,0,.2);
+    --shadow-raised: 0 0 0 0.5px var(--hairline), 0 6px 20px rgba(0,0,0,.35);
+    --shadow-md: 0 24px 64px rgba(0,0,0,.5);
+  }
+  body{ transition: background-color .18s var(--ease-out), color .18s var(--ease-out); }
   *{ box-sizing: border-box; }
   html,body{ height:100%; }
   body{
@@ -341,17 +358,35 @@
     background:rgba(28,26,24,.92); color:#fff; padding:11px 20px; border-radius:999px; font-size:13px;
     -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px);
     opacity:0; transition:opacity 0.24s var(--ease-out), transform 0.24s var(--ease-out); box-shadow:var(--shadow-md); pointer-events:none;
+    display:flex; align-items:center; gap:14px;
   }
-  .toast.show{ opacity:1; transform:translate(-50%,0); }
+  .toast.show{ opacity:1; transform:translate(-50%,0); pointer-events:auto; }
   .toast.err{ background:rgba(175,74,66,.94); }
+  .toast-undo-btn{ border:none; background:transparent; color:#fff; font-weight:700; font-size:13px; padding:0; text-decoration:underline; flex-shrink:0; }
+
+  /* ---------- Command palette (Ctrl/Cmd+K) ---------- */
+  .palette-modal{
+    position:fixed; top:14%; left:50%; width:560px; max-width:92vw; max-height:60vh;
+    background:var(--bg-raised); border-radius:var(--radius-lg); box-shadow:var(--shadow-md);
+    z-index:70; opacity:0; pointer-events:none; overflow:hidden; display:flex; flex-direction:column;
+    transform:translate(-50%,-8px) scale(0.97);
+    transition:opacity .16s var(--ease-out), transform .16s var(--ease-out);
+  }
+  .palette-modal.show{ opacity:1; pointer-events:auto; transform:translate(-50%,0) scale(1); }
+  #palette-input{ border:none; background:transparent; padding:16px 18px; font-size:16px; border-bottom:1px solid var(--hairline); width:100%; }
+  #palette-results{ overflow-y:auto; padding:6px; }
+  .palette-item{ display:flex; align-items:center; gap:10px; width:100%; text-align:left; border:none; background:transparent; padding:10px 12px; border-radius:10px; font-size:14px; }
+  .palette-item.active, .palette-item:hover{ background:var(--surface-2); }
+  .palette-item-type{ font-size:10px; text-transform:capitalize; color:var(--ink-faint); background:var(--surface-sunken); padding:2px 7px; border-radius:6px; flex-shrink:0; }
+  .palette-item-label{ flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .palette-item-sub{ font-size:11.5px; color:var(--ink-faint); flex-shrink:0; }
+
+  .inline-title-edit{ flex:1; min-width:0; font-size:15px; border:none; background:transparent; padding:0; border-bottom:1px solid var(--accent); }
 
   /* ---------- Rail "+ Group" inline form (replaces prompt()) ---------- */
   .rail-add-form{ background:var(--bg-raised); border:1px solid var(--line); border-radius:11px; padding:8px; margin-top:6px; }
   .rail-add-form input{ width:100%; border:1px solid var(--line); border-radius:9px; padding:6px 8px; margin-bottom:6px; background:var(--bg); font-size:12px; }
   .rail-add-form-foot{ display:flex; gap:6px; justify-content:flex-end; }
-
-  /* ---------- Staff remove: two-step inline confirm (replaces confirm()) ---------- */
-  .staff-remove.confirm{ width:auto; height:auto; padding:3px 9px; border-radius:20px; background:var(--danger-soft); color:var(--danger); font-size:10px; font-weight:700; }
 
   @media (max-width:820px){
     .shell{ flex-direction:column; }
@@ -383,6 +418,7 @@
         <input id="search" type="text" placeholder="Search...">
       </div>
       <div class="topbar-actions">
+        <button class="btn-ghost small" id="theme-toggle-btn" title="Theme"></button>
         <button class="btn-ghost small" id="import-badge">Import</button>
         <button class="btn-ghost small" id="export-badge">Export</button>
         <button class="sync-badge" id="sync-badge"><span class="sync-dot" id="sync-dot"></span><span id="sync-label">Sheet: not connected</span></button>
@@ -430,6 +466,7 @@
 <aside class="detail-panel" id="create-panel-el"><div class="detail-content" id="create-panel-content"></div></aside>
 <aside class="detail-panel" id="sync-panel-el"><div class="detail-content" id="sync-panel-content"></div></aside>
 <aside class="detail-panel" id="import-panel-el"><div class="detail-content" id="import-panel-content"></div></aside>
+<div class="palette-modal" id="palette-el"><div id="palette-content"></div></div>
 <input type="file" id="import-file-input" accept=".xlsx,.xls,.csv" style="display:none">
 <div id="popover-root"></div>
 
@@ -488,6 +525,7 @@
      ===================================================================== */
   var Store = (function(){
     var data = null;
+    var undoStack = [];
     function load(){
       try{
         var raw = localStorage.getItem(STORAGE_KEY);
@@ -496,6 +534,10 @@
       if(!data || !data.groups) data = seedData();
     }
     function persist(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }catch(e){} }
+    function pushUndo(label){
+      undoStack.push({ label:label, data: JSON.parse(JSON.stringify(data)) });
+      if(undoStack.length>30) undoStack.shift();
+    }
 
     var api = {
       init: function(){ load(); },
@@ -506,9 +548,12 @@
       getStaffById: function(id){ for(var i=0;i<data.staff.length;i++){ if(data.staff[i].id===id) return data.staff[i]; } return null; },
       addStaff: function(name, dept){ var id="s"+(data.nextStaffId++); data.staff.push({id:id,name:name,dept:dept||""}); persist(); return id; },
       deleteStaff: function(id){
+        var person = this.getStaffById(id);
+        pushUndo("Removed " + (person?person.name:"person"));
         data.staff = data.staff.filter(function(s){ return s.id!==id; });
         data.items.forEach(function(it){ it.assignees = it.assignees.filter(function(a){ return a.staffId!==id; }); });
         persist();
+        return person ? person.name : "person";
       },
 
       getAllItems: function(){ return data.items; },
@@ -524,7 +569,14 @@
         data.items.push(item); persist(); return item;
       },
       updateItem: function(id, patch){ var item=this.getItem(id); if(!item) return null; Object.assign(item,patch); persist(); return item; },
-      deleteItem: function(id){ data.items = data.items.filter(function(it){ return it.id!==id && it.parentId!==id; }); persist(); },
+      deleteItem: function(id){
+        var item = this.getItem(id);
+        var label = item ? ('Deleted "' + (item.title||"Untitled") + '"') : "Deleted";
+        pushUndo(label);
+        data.items = data.items.filter(function(it){ return it.id!==id && it.parentId!==id; });
+        persist();
+        return label;
+      },
 
       addAssignee: function(id, staffId){
         var item=this.getItem(id); if(!item) return;
@@ -547,7 +599,14 @@
       },
 
       _replaceAll: function(newData){ data = newData; persist(); },
-      _snapshot: function(){ return data; }
+      _snapshot: function(){ return data; },
+      undo: function(){
+        if(undoStack.length===0) return false;
+        data = undoStack.pop().data;
+        persist();
+        return true;
+      },
+      canUndo: function(){ return undoStack.length>0; }
     };
     return api;
   })();
@@ -652,6 +711,7 @@
   }
   function setRail(key){
     state.rail = key;
+    saveViewState();
     renderRail();
     var isList = (key!=="overview" && key!=="team");
     document.getElementById("pane-list").classList.toggle("active", isList);
@@ -661,6 +721,9 @@
     if(key==="overview") renderDataOverview();
     if(key==="team") renderStaff();
   }
+  var VIEW_STATE_KEY = "governance_tracker_view_v1";
+  function saveViewState(){ try{ localStorage.setItem(VIEW_STATE_KEY, JSON.stringify({ rail:state.rail, filter:state.tableFilter })); }catch(e){} }
+  function loadViewState(){ try{ var raw=localStorage.getItem(VIEW_STATE_KEY); if(raw) return JSON.parse(raw); }catch(e){} return null; }
 
   /* =====================================================================
      RENDER: dashboard stat strip — always reflects the whole workspace,
@@ -1115,13 +1178,14 @@
       var bid = row.getAttribute("data-branch-id");
       row.querySelector('[data-b-field="title"]').addEventListener("input", function(e){ Store.updateItem(bid,{title:e.target.value}); renderAll(); });
       var rm = row.querySelector("[data-remove-branch]");
-      if(rm) rm.onclick = function(){ Store.deleteItem(bid); buildPanel(item.id); renderAll(); };
+      if(rm) rm.onclick = function(){ var label=Store.deleteItem(bid); buildPanel(item.id); renderAll(); showUndoToast(label); };
     });
 
     document.getElementById("delete-item-btn").onclick = function(){
       var parentId = item.parentId;
-      Store.deleteItem(item.id);
+      var label = Store.deleteItem(item.id);
       if(parentId) openDetail(parentId); else closeDetail();
+      showUndoToast(label);
     };
 
     document.getElementById("detail-content").onclick = function(e){
@@ -1292,7 +1356,11 @@
     if(e.key==="Escape" && popoverRoot.classList.contains("show")) closePopover();
   });
 
+  function dismissExistingToasts(){
+    document.querySelectorAll(".toast").forEach(function(t){ t.remove(); });
+  }
   function showToast(message, kind){
+    dismissExistingToasts();
     var el = document.createElement("div");
     el.className = "toast" + (kind?(" "+kind):"");
     el.textContent = message;
@@ -1302,6 +1370,24 @@
       el.classList.remove("show");
       setTimeout(function(){ el.remove(); }, 250);
     }, 3200);
+  }
+
+  function showUndoToast(message){
+    dismissExistingToasts();
+    var el = document.createElement("div");
+    el.className = "toast";
+    el.innerHTML = '<span>'+esc(message)+'</span><button type="button" class="toast-undo-btn">Undo</button>';
+    document.body.appendChild(el);
+    var undone = false;
+    function dismiss(){ el.classList.remove("show"); setTimeout(function(){ el.remove(); }, 250); }
+    el.querySelector(".toast-undo-btn").onclick = function(){
+      undone = true;
+      Store.undo();
+      renderAll();
+      dismiss();
+    };
+    setTimeout(function(){ el.classList.add("show"); }, 10);
+    setTimeout(function(){ if(!undone) dismiss(); }, 5000);
   }
 
   /* =====================================================================
@@ -1448,6 +1534,98 @@
       renderAll();
     };
   }
+
+  /* =====================================================================
+     COMMAND PALETTE (Ctrl/Cmd+K) — searches tasks, people, classifications,
+     and a handful of actions, all from one box, with arrow-key navigation.
+     ===================================================================== */
+  var paletteEl = document.getElementById("palette-el");
+  var paletteActiveIndex = 0;
+  var paletteActionHandlers = [];
+
+  function openPalette(){
+    buildPaletteUI();
+    paletteEl.classList.add("show");
+    backdropEl.classList.add("show");
+    document.getElementById("palette-input").focus();
+  }
+  function closePalette(){
+    paletteEl.classList.remove("show");
+    if(!panelEl.classList.contains("show") && !createPanelEl.classList.contains("show") && !syncPanelEl.classList.contains("show") && !importPanelEl.classList.contains("show")){
+      backdropEl.classList.remove("show");
+    }
+  }
+
+  function paletteIndex(query){
+    var q = query.trim().toLowerCase();
+    var results = [];
+    var actions = [
+      {label:"New to-do", run:function(){ openCreatePanel(); }},
+      {label:"Toggle theme", run:function(){ cycleTheme(); }},
+      {label:"Go to All", run:function(){ setRail("all"); }},
+      {label:"Go to Insights", run:function(){ setRail("overview"); }},
+      {label:"Go to Team", run:function(){ setRail("team"); }}
+    ];
+    actions.forEach(function(a){
+      if(!q || a.label.toLowerCase().indexOf(q)!==-1) results.push({type:"action", label:a.label, run:a.run});
+    });
+    if(q){
+      Store.getAllItems().forEach(function(it){
+        if(it.title && it.title.toLowerCase().indexOf(q)!==-1){
+          results.push({ type:"task", label:it.title, sublabel:it.parentId?"Branch":"To-do", run:function(){ openDetail(it.id); } });
+        }
+      });
+      Store.getGroups().forEach(function(g){
+        if(g.name.toLowerCase().indexOf(q)!==-1) results.push({ type:"classification", label:g.name, run:function(){ setRail(g.id); } });
+      });
+      Store.getStaff().forEach(function(s){
+        if(s.name.toLowerCase().indexOf(q)!==-1) results.push({ type:"person", label:s.name, sublabel:s.dept||"", run:function(){ setRail("team"); } });
+      });
+    }
+    return results.slice(0, 30);
+  }
+
+  function buildPaletteUI(){
+    document.getElementById("palette-content").innerHTML =
+      '<input type="text" id="palette-input" placeholder="Search to-dos, people, classifications, or actions...">'
+      + '<div id="palette-results"></div>';
+    renderPaletteResults("");
+    document.getElementById("palette-input").addEventListener("input", function(e){ renderPaletteResults(e.target.value); });
+    document.getElementById("palette-input").addEventListener("keydown", function(e){
+      var rows = document.querySelectorAll("#palette-results .palette-item");
+      if(e.key==="ArrowDown"){ e.preventDefault(); paletteActiveIndex = Math.min(paletteActiveIndex+1, rows.length-1); highlightPaletteActive(); }
+      else if(e.key==="ArrowUp"){ e.preventDefault(); paletteActiveIndex = Math.max(paletteActiveIndex-1, 0); highlightPaletteActive(); }
+      else if(e.key==="Enter"){ e.preventDefault(); if(paletteActionHandlers[paletteActiveIndex]) runPaletteChoice(paletteActiveIndex); }
+    });
+  }
+  function renderPaletteResults(query){
+    paletteActiveIndex = 0;
+    var results = paletteIndex(query);
+    paletteActionHandlers = results.map(function(r){ return r.run; });
+    var html = results.length ? results.map(function(r,i){
+      return '<button type="button" class="palette-item'+(i===0?" active":"")+'" data-idx="'+i+'"><span class="palette-item-type">'+esc(r.type)+'</span><span class="palette-item-label" dir="auto">'+esc(r.label)+'</span>'+(r.sublabel?'<span class="palette-item-sub" dir="auto">'+esc(r.sublabel)+'</span>':"")+'</button>';
+    }).join("") : '<div class="empty-col" style="padding:20px;">No matches</div>';
+    document.getElementById("palette-results").innerHTML = html;
+    document.querySelectorAll("#palette-results .palette-item").forEach(function(node, i){
+      node.onclick = function(){ runPaletteChoice(i); };
+    });
+  }
+  function highlightPaletteActive(){
+    var rows = document.querySelectorAll("#palette-results .palette-item");
+    rows.forEach(function(n,i){ n.classList.toggle("active", i===paletteActiveIndex); });
+    if(rows[paletteActiveIndex] && rows[paletteActiveIndex].scrollIntoView) rows[paletteActiveIndex].scrollIntoView({block:"nearest"});
+  }
+  function runPaletteChoice(i){
+    var run = paletteActionHandlers[i];
+    closePalette();
+    if(run) run();
+  }
+  document.addEventListener("keydown", function(e){
+    if((e.metaKey || e.ctrlKey) && (e.key==="k" || e.key==="K")){
+      e.preventDefault();
+      if(paletteEl.classList.contains("show")) closePalette(); else openPalette();
+    }
+  });
 
   /* =====================================================================
      GOOGLE SHEETS SYNC (unchanged logic from the previous iteration)
@@ -1925,6 +2103,7 @@
     document.querySelectorAll(".chip").forEach(function(c){ c.classList.remove("active"); });
     chip.classList.add("active");
     state.tableFilter = chip.getAttribute("data-filter");
+    saveViewState();
     renderList();
   });
 
@@ -1954,26 +2133,61 @@
     if(target) target.click();
   });
 
+  var titleClickTimer = null;
   document.getElementById("list-wrap").addEventListener("click", function(e){
     var toggle = e.target.closest("[data-status-toggle]");
     if(toggle){ toggleDone(toggle.getAttribute("data-status-toggle")); return; }
     var disclose = e.target.closest("[data-toggle-expand]");
     if(disclose){ toggleExpand(disclose.getAttribute("data-toggle-expand")); return; }
     var row = e.target.closest(".row[data-id]");
-    if(row){ openDetail(row.getAttribute("data-id")); }
+    if(!row) return;
+    var titleEl = e.target.closest(".row-title");
+    if(titleEl){
+      // Give a dblclick (inline edit) a brief window to cancel this before
+      // it opens the full detail panel.
+      clearTimeout(titleClickTimer);
+      titleClickTimer = setTimeout(function(){ openDetail(row.getAttribute("data-id")); }, 230);
+      return;
+    }
+    openDetail(row.getAttribute("data-id"));
   });
+  document.getElementById("list-wrap").addEventListener("dblclick", function(e){
+    var titleEl = e.target.closest(".row-title");
+    if(!titleEl) return;
+    clearTimeout(titleClickTimer);
+    startInlineTitleEdit(titleEl);
+  });
+  function startInlineTitleEdit(titleEl){
+    var row = titleEl.closest(".row");
+    var id = row.getAttribute("data-id");
+    var item = Store.getItem(id);
+    if(!item) return;
+    var input = document.createElement("input");
+    input.type = "text"; input.className = "inline-title-edit"; input.setAttribute("dir","auto");
+    input.value = item.title;
+    titleEl.replaceWith(input);
+    input.focus(); input.select();
+    var committed = false;
+    function commit(){ if(committed) return; committed=true; Store.updateItem(id, {title:input.value.trim()}); renderList(); }
+    function cancel(){ if(committed) return; committed=true; renderList(); }
+    input.addEventListener("keydown", function(ev){
+      if(ev.key==="Enter"){ ev.preventDefault(); commit(); }
+      else if(ev.key==="Escape"){ ev.preventDefault(); cancel(); }
+    });
+    input.addEventListener("blur", commit);
+  }
 
   document.getElementById("staff-grid").addEventListener("click", function(e){
     if(e.target.closest("#add-staff-btn")){ openAddStaffForm(); return; }
-    var confirmBtn = e.target.closest("[data-confirm-remove-staff]");
-    if(confirmBtn){ Store.deleteStaff(confirmBtn.getAttribute("data-confirm-remove-staff")); renderAll(); return; }
     var rm = e.target.closest("[data-remove-staff]");
     if(rm){
-      rm.outerHTML = '<button class="staff-remove confirm" data-confirm-remove-staff="'+rm.getAttribute("data-remove-staff")+'" title="Click again to confirm">Sure?</button>';
+      var name = Store.deleteStaff(rm.getAttribute("data-remove-staff"));
+      renderAll();
+      showUndoToast("Removed " + name);
     }
   });
 
-  backdropEl.addEventListener("click", function(){ closeDetail(); closeCreatePanel(); closeSyncPanel(); closeImportPanel(); });
+  backdropEl.addEventListener("click", function(){ closeDetail(); closeCreatePanel(); closeSyncPanel(); closeImportPanel(); closePalette(); });
   document.addEventListener("keydown", function(e){
     if(e.key==="Escape"){
       if(panelEl.classList.contains("show")) closeDetail();
@@ -1982,11 +2196,51 @@
       if(importPanelEl.classList.contains("show")) closeImportPanel();
     }
   });
-
-  /* =====================================================================
-     INIT
-     ===================================================================== */
+  var THEME_KEY = "governance_tracker_theme_v1";
+  var THEME_ICONS = {
+    auto: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18z" fill="currentColor" stroke="none"/></svg>',
+    light: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2 12h2.5M19.5 12H22M4.2 19.8L6 18M18 6l1.8-1.8"/></svg>',
+    dark: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/></svg>'
+  };
+  function currentThemeMode(){
+    try{ return localStorage.getItem(THEME_KEY) || "auto"; }catch(e){ return "auto"; }
+  }
+  function applyTheme(mode){
+    if(mode==="auto") document.documentElement.removeAttribute("data-theme");
+    else document.documentElement.setAttribute("data-theme", mode);
+    try{ localStorage.setItem(THEME_KEY, mode); }catch(e){}
+    var btn = document.getElementById("theme-toggle-btn");
+    if(btn){
+      var label = mode==="auto"?"Auto":mode==="light"?"Light":"Dark";
+      btn.innerHTML = THEME_ICONS[mode] + "<span>"+label+"</span>";
+    }
+    renderDataOverviewIfVisible();
+  }
+  function renderDataOverviewIfVisible(){
+    // chart colors are set once at draw time, not via CSS vars, so a
+    // theme flip while Insights is open needs a redraw to match
+    if(state.rail==="overview") renderDataOverview();
+  }
+  function cycleTheme(){
+    var order = ["auto","light","dark"];
+    var next = order[(order.indexOf(currentThemeMode())+1) % order.length];
+    applyTheme(next);
+  }
+  document.getElementById("theme-toggle-btn").addEventListener("click", cycleTheme);
+  function restoreViewState(){
+    var saved = loadViewState();
+    if(!saved) return;
+    state.rail = saved.rail || "all";
+    state.tableFilter = saved.filter || "all";
+    document.querySelectorAll(".chip").forEach(function(c){ c.classList.toggle("active", c.getAttribute("data-filter")===state.tableFilter); });
+    var isList = (state.rail!=="overview" && state.rail!=="team");
+    document.getElementById("pane-list").classList.toggle("active", isList);
+    document.getElementById("pane-overview").classList.toggle("active", state.rail==="overview");
+    document.getElementById("pane-team").classList.toggle("active", state.rail==="team");
+  }
+  applyTheme(currentThemeMode());
   Store.init();
+  restoreViewState();
   renderAll();
 
 })();
