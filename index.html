@@ -4,9 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Gov To Do</title>
-<!-- SheetJS 0.20.3 (current release per docs.sheetjs.com, checked July 2026) -->
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-<!-- Chart.js 4.5.1 (latest npm release, checked July 2026) -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
 <style>
   :root{
@@ -62,10 +60,7 @@
       --shadow-md: 0 24px 64px rgba(0,0,0,.5);
     }
   }
-  /* Explicit "dark" override applies the same values regardless of the
-     system preference — this is what makes the toggle a real override
-     rather than just a readout of prefers-color-scheme. */
-  :root[data-theme="dark"]{
+    :root[data-theme="dark"]{
     --bg: #121110; --bg-raised: #1B1A18; --surface-2: #222120; --surface-sunken: #0E0D0C;
     --hairline: rgba(255,255,255,.08); --hairline-strong: rgba(255,255,255,.14);
     --ink: #F3F0EB; --ink-soft: #A8A29A; --ink-faint: #726C65;
@@ -90,16 +85,15 @@
   button, input, select, textarea{ font-family:inherit; font-size:inherit; color:inherit; }
   button{ cursor:pointer; }
   ::selection{ background:var(--accent-soft); }
-  :focus-visible{ outline:2px solid var(--accent); outline-offset:2px; border-radius:4px; }
+  :focus-visible{ outline:none; box-shadow:0 0 0 3px var(--accent-ring); border-radius:4px; }
   [dir="auto"]{ unicode-bidi: plaintext; }
   @media (prefers-reduced-motion: reduce){ *{ animation-duration:0.001ms !important; transition-duration:0.001ms !important; } }
 
-  /* ---------- Shell: rail + main column (replaces the old top-tabs/kanban template) ---------- */
-  .shell{ position:relative; z-index:1; display:flex; min-height:100vh; }
+    .shell{ position:relative; z-index:1; display:flex; min-height:100vh; }
   .rail{
     width:196px; flex-shrink:0; padding:18px 10px;
     display:flex; flex-direction:column; gap:3px; position:sticky; top:0; height:100vh; overflow-y:auto;
-    border-right:1px solid var(--hairline);
+    border-inline-end:1px solid var(--hairline);
     background:color-mix(in srgb, var(--bg) 72%, transparent);
     -webkit-backdrop-filter:saturate(180%) blur(24px); backdrop-filter:saturate(180%) blur(24px);
   }
@@ -108,7 +102,7 @@
   .rail-brand-text{ font-size:13px; font-weight:700; line-height:1.2; }
   .rail-brand-sub{ font-size:11px; color:var(--ink-faint); }
   .rail-tab{
-    display:flex; align-items:center; gap:8px; width:100%; text-align:left; border:none;
+    display:flex; align-items:center; gap:8px; width:100%; text-align:start; border:none;
     background:transparent; color:var(--ink-soft); padding:8px 10px; border-radius:var(--radius-sm);
     font-size:12.5px; font-weight:500;
   }
@@ -131,34 +125,35 @@
 
   .topbar{ display:flex; align-items:center; gap:10px; margin-bottom:16px; flex-wrap:wrap; }
   .search-wrap{ position:relative; display:flex; align-items:center; }
-  .search-wrap svg{ position:absolute; left:10px; pointer-events:none; opacity:0.45; }
-  #search{ border:1px solid var(--line); background:var(--bg-raised); padding:8px 12px 8px 32px; border-radius:10px; width:200px; }
-  .topbar-actions{ display:flex; align-items:center; gap:8px; margin-left:auto; flex-wrap:wrap; }
+  .search-wrap svg{ position:absolute; inset-inline-start:10px; pointer-events:none; opacity:0.45; }
+  #search{ border:1px solid var(--line); background:var(--bg-raised); padding-block:8px; padding-inline-start:32px; padding-inline-end:12px; border-radius:10px; width:200px; }
+  .topbar-actions{ display:flex; align-items:center; gap:8px; margin-inline-start:auto; flex-wrap:wrap; }
 
   .btn-primary{ background:var(--accent); color:#fff; border:none; padding:8px 14px; border-radius:11px; font-weight:600; display:inline-flex; align-items:center; gap:6px; }
   .btn-primary:hover{ background:var(--accent-ink); }
   .btn-ghost{ background:transparent; border:1px solid var(--line); color:var(--ink-soft); padding:7px 12px; border-radius:11px; font-weight:500; display:inline-flex; align-items:center; gap:6px; }
   .btn-ghost:hover{ border-color:var(--ink-faint); color:var(--ink); }
   .btn-ghost.small{ padding:5px 10px; font-size:12px; }
-  .sync-badge{ display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--ink-faint); padding:6px 10px; border:1px solid var(--line); border-radius:20px; background:var(--bg-raised); }
-  .sync-dot{ width:7px; height:7px; border-radius:50%; background:var(--ink-faint); }
-  .sync-dot.connected{ background:var(--ok); }
+  .settings-panel{ background:var(--bg-raised); border-radius:var(--radius-sm); box-shadow:var(--shadow-md); min-width:220px; padding:6px; }
+  .settings-row{ display:flex; align-items:center; gap:8px; width:100%; text-align:start; border:none; background:transparent; padding:9px 10px; border-radius:9px; font-size:13px; color:var(--ink); }
+  .settings-row:hover{ background:var(--surface-2); }
+  .settings-row-sub{ margin-inline-start:auto; font-size:11.5px; color:var(--ink-faint); }
+  .settings-sep{ height:1px; background:var(--hairline); margin:6px 4px; }
+  .sync-dot-inline{ width:7px; height:7px; border-radius:50%; background:var(--ink-faint); flex-shrink:0; }
+  .sync-dot-inline.connected{ background:var(--ok); }
 
-  /* ---------- Dashboard stat strip ---------- */
-  .stat-strip{ display:flex; gap:10px; margin:2px 0 16px; flex-wrap:wrap; }
+    .stat-strip{ display:flex; gap:10px; margin:2px 0 16px; flex-wrap:wrap; }
   .stat-pill{ background:var(--bg-raised); border:1px solid var(--line); border-radius:var(--radius-sm); padding:10px 16px; display:flex; align-items:baseline; gap:8px; cursor:pointer; }
   .stat-pill:hover{ border-color:var(--ink-faint); }
   .stat-pill .n{ font-size:19px; font-weight:600; }
   .stat-pill .l{ font-size:11.5px; color:var(--ink-faint); }
   .stat-pill.warn .n{ color:var(--danger); }
 
-  /* ---------- Filter chips ---------- */
-  .filter-chips{ display:flex; gap:6px; margin:0 0 14px; flex-wrap:wrap; }
+    .filter-chips{ display:flex; gap:6px; margin:0 0 14px; flex-wrap:wrap; }
   .chip{ border:1px solid var(--line); background:var(--bg-raised); border-radius:20px; padding:6px 13px; font-size:12.5px; font-weight:500; color:var(--ink-soft); }
   .chip.active{ background:var(--accent); color:#fff; border-color:var(--accent); }
 
-  /* ---------- Ledger row list (replaces board+table) ---------- */
-  .quick-add-row{ display:flex; align-items:center; gap:10px; padding:9px 12px; border:1.5px dashed var(--line); border-radius:var(--radius-sm); margin-bottom:12px; }
+    .quick-add-row{ display:flex; align-items:center; gap:10px; padding:9px 12px; border:1.5px dashed var(--line); border-radius:var(--radius-sm); margin-bottom:12px; }
   .quick-add-row:focus-within{ border-color:var(--accent); border-style:solid; }
   .quick-add-plus{ color:var(--ink-faint); font-size:16px; font-weight:600; flex-shrink:0; line-height:1; }
   #quick-add-input{ border:none; background:transparent; flex:1; font-size:13px; padding:2px 0; }
@@ -170,6 +165,20 @@
   .row-wrap:last-child > .row{ border-bottom:none; }
   .row{ display:flex; align-items:center; gap:10px; padding:12px 16px; min-height:46px; cursor:pointer; border-bottom:1px solid var(--hairline); transition:background .12s var(--ease-out); }
   .row:hover{ background:var(--surface-2); }
+  .row.selected{ background:var(--accent-soft); }
+  .rail-tab.drag-over{ box-shadow:0 0 0 2px var(--accent) inset; }
+
+  .bulk-bar{
+    position:fixed; bottom:28px; left:50%; transform:translate(-50%,16px); z-index:75;
+    background:rgba(28,26,24,.92); color:#fff; padding:9px 14px; border-radius:999px; font-size:13px;
+    -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px); box-shadow:var(--shadow-md);
+    display:flex; align-items:center; gap:10px; opacity:0; pointer-events:none;
+    transition:opacity .2s var(--ease-out), transform .2s var(--ease-out);
+  }
+  .bulk-bar.show{ opacity:1; pointer-events:auto; transform:translate(-50%,0); }
+  .bulk-count{ font-weight:600; padding-inline-end:4px; }
+  .bulk-bar button{ border:none; background:rgba(255,255,255,.12); color:#fff; padding:6px 12px; border-radius:999px; font-size:12.5px; font-weight:500; }
+  .bulk-bar button:hover{ background:rgba(255,255,255,.2); }
   .row.branch-row-list{ padding-inline-start:46px; min-height:40px; }
 
   .checkbox{
@@ -201,10 +210,10 @@
   .children-wrap.expanded{ max-height:900px; }
 
   .avatars{ display:flex; flex-shrink:0; }
-  .roundel{ position:relative; width:22px; height:22px; border-radius:50%; color:#fff; font-size:10.5px; font-weight:600; display:flex; align-items:center; justify-content:center; border:2px solid var(--bg-raised); margin-left:-7px; flex-shrink:0; }
-  .roundel:first-child{ margin-left:0; }
-  .roundel.small{ width:18px; height:18px; font-size:9px; border-width:1.5px; margin-left:-6px; }
-  .lead-badge{ position:absolute; bottom:-2px; right:-2px; width:7px; height:7px; border-radius:50%; background:var(--brass); box-shadow:0 0 0 1.5px var(--bg-raised); }
+  .roundel{ position:relative; width:22px; height:22px; border-radius:50%; color:#fff; font-size:10.5px; font-weight:600; display:flex; align-items:center; justify-content:center; border:2px solid var(--bg-raised); margin-inline-start:-7px; flex-shrink:0; }
+  .roundel:first-child{ margin-inline-start:0; }
+  .roundel.small{ width:18px; height:18px; font-size:9px; border-width:1.5px; margin-inline-start:-6px; }
+  .lead-badge{ position:absolute; bottom:-2px; inset-inline-end:-2px; width:7px; height:7px; border-radius:50%; background:var(--brass); box-shadow:0 0 0 1.5px var(--bg-raised); }
 
   .tag{ display:inline-flex; align-items:center; font-size:11px; font-weight:600; padding:3px 9px; border-radius:999px; white-space:nowrap; flex-shrink:0; }
   .tag-medium{ background:var(--slate-soft); color:var(--slate); }
@@ -216,21 +225,19 @@
   .tag-group{ background:var(--accent-soft); color:var(--accent-ink); }
   .empty-col{ font-size:13px; color:var(--ink-faint); text-align:center; }
 
-  /* ---------- Data overview (charts) ---------- */
-  .chart-grid{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    .chart-grid{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
   .chart-card{ background:var(--bg-raised); border:1px solid var(--line); border-radius:var(--radius); padding:16px; }
   .chart-card.wide{ grid-column:1 / -1; }
   .chart-card h3{ margin:0 0 12px; font-size:13px; font-weight:600; color:var(--ink-faint); }
   .chart-card-body{ height:220px; position:relative; }
   .chart-card.wide .chart-card-body{ height:260px; }
 
-  /* ---------- Staff ---------- */
-  .staff-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(250px,1fr)); gap:14px; }
+    .staff-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(250px,1fr)); gap:14px; }
   .staff-card{ background:var(--bg-raised); border:1px solid var(--line); border-radius:var(--radius); padding:16px; position:relative; }
   .staff-card-head{ display:flex; align-items:center; gap:10px; }
   .staff-name{ font-weight:600; font-size:14px; }
   .staff-dept{ font-size:11px; color:var(--ink-faint); }
-  .staff-remove{ position:absolute; top:12px; right:12px; border:none; background:transparent; color:var(--ink-faint); font-size:14px; }
+  .staff-remove{ position:absolute; top:12px; inset-inline-end:12px; border:none; background:transparent; color:var(--ink-faint); font-size:14px; }
   .staff-remove:hover{ color:var(--danger); }
   .staff-stats{ display:flex; gap:16px; margin:14px 0 8px; }
   .stat-num{ font-size:19px; font-weight:600; }
@@ -249,13 +256,12 @@
   .mini-form input{ width:100%; border:1px solid var(--line); border-radius:10px; padding:7px 9px; margin-bottom:8px; background:var(--bg); }
   .mini-form-foot{ display:flex; gap:8px; justify-content:flex-end; }
 
-  /* ---------- Detail / Sync / Import panels ---------- */
-  .backdrop{ position:fixed; inset:0; background:rgba(28,26,24,0.28); -webkit-backdrop-filter:blur(2px); backdrop-filter:blur(2px); opacity:0; pointer-events:none; transition:opacity 0.2s var(--ease-out); z-index:40; }
+    .backdrop{ position:fixed; inset:0; background:rgba(28,26,24,0.28); -webkit-backdrop-filter:blur(2px); backdrop-filter:blur(2px); opacity:0; pointer-events:none; transition:opacity 0.2s var(--ease-out); z-index:40; }
   .backdrop.show{ opacity:1; pointer-events:auto; }
-  .detail-panel{ position:fixed; top:0; right:0; height:100%; width:460px; max-width:92vw; background:var(--bg-raised); box-shadow:var(--shadow-md); border-radius:var(--radius-lg) 0 0 var(--radius-lg); transform:translateX(100%); transition:transform 0.34s var(--ease-out); z-index:41; overflow-y:auto; }
+  .detail-panel{ position:fixed; top:0; inset-inline-end:0; height:100%; width:460px; max-width:92vw; background:var(--bg-raised); box-shadow:var(--shadow-md); border-radius:var(--radius-lg) 0 0 var(--radius-lg); transform:translateX(100%); transition:transform 0.34s var(--ease-out); z-index:41; overflow-y:auto; }
   .detail-panel.show{ transform:translateX(0); }
   .detail-content{ padding:20px 22px 60px; }
-  .detail-close{ border:none; background:var(--line-soft); width:28px; height:28px; border-radius:11px; display:flex; align-items:center; justify-content:center; float:right; }
+  .detail-close{ border:none; background:var(--line-soft); width:28px; height:28px; border-radius:11px; display:flex; align-items:center; justify-content:center; float:inline-end; }
   .detail-close:hover{ background:var(--line); }
   .parent-link{ font-size:11.5px; color:var(--brass-ink); background:var(--brass-soft); display:inline-block; padding:4px 10px; border-radius:20px; margin-bottom:12px; cursor:pointer; }
   .field{ margin-bottom:16px; }
@@ -283,6 +289,9 @@
   .avatar-pick{ border:none; background:transparent; padding:2px; border-radius:50%; opacity:0.4; line-height:0; }
   .avatar-pick:hover{ opacity:0.75; }
   .avatar-pick.picked{ opacity:1; box-shadow:0 0 0 2px var(--accent); border-radius:50%; }
+  .date-chip-row{ margin:-6px 0 14px; }
+  .date-chip{ display:inline-flex; align-items:center; gap:6px; background:var(--accent-soft); color:var(--accent-ink); font-size:12px; font-weight:600; padding:4px 6px 4px 10px; border-radius:999px; }
+  .date-chip button{ border:none; background:transparent; color:var(--accent-ink); font-size:13px; line-height:1; padding:2px; }
   .section-title{ font-size:13px; font-weight:600; color:var(--ink-faint); margin:22px 0 10px; display:flex; align-items:center; justify-content:space-between; }
   .branch-edit-row{ border:1px solid var(--line); border-radius:var(--radius-sm); padding:10px; margin-bottom:8px; background:var(--bg); }
   .branch-edit-row .field-row{ margin-bottom:8px; }
@@ -303,7 +312,7 @@
   .sync-status-msg.ok{ background:var(--ok-soft); color:var(--ok); }
   .sync-status-msg.err{ background:var(--danger-soft); color:var(--danger); }
   .sync-status-msg.info{ background:var(--line-soft); color:var(--ink-soft); }
-  .step-num{ display:inline-flex; width:16px; height:16px; border-radius:50%; background:var(--brass-soft); color:var(--brass-ink); font-size:10px; align-items:center; justify-content:center; margin-right:5px; font-weight:700; }
+  .step-num{ display:inline-flex; width:16px; height:16px; border-radius:50%; background:var(--brass-soft); color:var(--brass-ink); font-size:10px; align-items:center; justify-content:center; margin-inline-end:5px; font-weight:700; }
   .import-radio{ display:flex; gap:6px; align-items:center; font-weight:400; text-transform:none; margin-bottom:6px; font-size:12.5px; }
   .import-radio input[type="radio"]{
     appearance:none; -webkit-appearance:none; width:15px; height:15px; border-radius:50%;
@@ -313,13 +322,9 @@
   .import-radio input[type="radio"]:checked::after{ content:""; position:absolute; inset:2px; border-radius:50%; background:var(--accent); }
   code{ background:var(--line-soft); padding:1px 5px; border-radius:5px; font-family:var(--font-mono-sys); font-size:11.5px; }
 
-  /* ---------- Custom form controls (select + date picker) ----------
-     No native <select> or <input type="date"> anywhere in the app —
-     every dropdown and the date picker are drawn with our own CSS so
-     nothing falls back to browser/OS chrome. */
-  .cselect-trigger{
+    .cselect-trigger{
     width:100%; display:flex; align-items:center; justify-content:space-between; gap:8px;
-    border:1px solid var(--line); border-radius:11px; padding:8px 10px; background:var(--bg); text-align:left;
+    border:1px solid var(--line); border-radius:11px; padding:8px 10px; background:var(--bg); text-align:start;
   }
   .cselect-trigger:hover{ border-color:var(--ink-faint); }
   .cselect-trigger .cselect-chevron{ opacity:0.5; flex-shrink:0; }
@@ -332,7 +337,7 @@
     background:var(--bg-raised); border:1px solid var(--line); border-radius:var(--radius-sm);
     box-shadow:var(--shadow-md); min-width:160px; max-width:240px; padding:5px; max-height:260px; overflow-y:auto;
   }
-  .cselect-opt{ display:flex; align-items:center; gap:8px; width:100%; text-align:left; border:none; background:transparent; padding:8px 10px; border-radius:9px; font-size:12.5px; color:var(--ink); }
+  .cselect-opt{ display:flex; align-items:center; gap:8px; width:100%; text-align:start; border:none; background:transparent; padding:8px 10px; border-radius:9px; font-size:12.5px; color:var(--ink); }
   .cselect-opt:hover{ background:var(--line-soft); }
   .cselect-opt.selected{ background:var(--accent-soft); color:var(--accent-ink); font-weight:600; }
   .cselect-swatch{ width:9px; height:9px; border-radius:50%; flex-shrink:0; }
@@ -352,8 +357,7 @@
   .dp-clear{ width:100%; margin-top:8px; border:none; background:transparent; color:var(--ink-faint); font-size:11.5px; padding:5px; border-radius:6px; }
   .dp-clear:hover{ background:var(--danger-soft); color:var(--danger); }
 
-  /* ---------- Toast (replaces alert()) ---------- */
-  .toast{
+    .toast{
     position:fixed; bottom:28px; left:50%; transform:translate(-50%,12px); z-index:80;
     background:rgba(28,26,24,.92); color:#fff; padding:11px 20px; border-radius:999px; font-size:13px;
     -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px);
@@ -364,8 +368,7 @@
   .toast.err{ background:rgba(175,74,66,.94); }
   .toast-undo-btn{ border:none; background:transparent; color:#fff; font-weight:700; font-size:13px; padding:0; text-decoration:underline; flex-shrink:0; }
 
-  /* ---------- Command palette (Ctrl/Cmd+K) ---------- */
-  .palette-modal{
+    .palette-modal{
     position:fixed; top:14%; left:50%; width:560px; max-width:92vw; max-height:60vh;
     background:var(--bg-raised); border-radius:var(--radius-lg); box-shadow:var(--shadow-md);
     z-index:70; opacity:0; pointer-events:none; overflow:hidden; display:flex; flex-direction:column;
@@ -375,7 +378,7 @@
   .palette-modal.show{ opacity:1; pointer-events:auto; transform:translate(-50%,0) scale(1); }
   #palette-input{ border:none; background:transparent; padding:16px 18px; font-size:16px; border-bottom:1px solid var(--hairline); width:100%; }
   #palette-results{ overflow-y:auto; padding:6px; }
-  .palette-item{ display:flex; align-items:center; gap:10px; width:100%; text-align:left; border:none; background:transparent; padding:10px 12px; border-radius:10px; font-size:14px; }
+  .palette-item{ display:flex; align-items:center; gap:10px; width:100%; text-align:start; border:none; background:transparent; padding:10px 12px; border-radius:10px; font-size:14px; }
   .palette-item.active, .palette-item:hover{ background:var(--surface-2); }
   .palette-item-type{ font-size:10px; text-transform:capitalize; color:var(--ink-faint); background:var(--surface-sunken); padding:2px 7px; border-radius:6px; flex-shrink:0; }
   .palette-item-label{ flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -383,20 +386,23 @@
 
   .inline-title-edit{ flex:1; min-width:0; font-size:15px; border:none; background:transparent; padding:0; border-bottom:1px solid var(--accent); }
 
-  /* ---------- Rail "+ Group" inline form (replaces prompt()) ---------- */
-  .rail-add-form{ background:var(--bg-raised); border:1px solid var(--line); border-radius:11px; padding:8px; margin-top:6px; }
+    .rail-add-form{ background:var(--bg-raised); border:1px solid var(--line); border-radius:11px; padding:8px; margin-top:6px; }
   .rail-add-form input{ width:100%; border:1px solid var(--line); border-radius:9px; padding:6px 8px; margin-bottom:6px; background:var(--bg); font-size:12px; }
   .rail-add-form-foot{ display:flex; gap:6px; justify-content:flex-end; }
 
   @media (max-width:820px){
     .shell{ flex-direction:column; }
-    .rail{ position:static; height:auto; width:100%; flex-direction:row; overflow-x:auto; border-right:none; border-bottom:1px solid var(--line); padding:10px; }
+    .rail{ position:static; height:auto; width:100%; flex-direction:row; overflow-x:auto; border-inline-end:none; border-bottom:1px solid var(--line); padding:10px; }
     .rail-brand{ padding:0 8px; }
     .rail-tab{ border-radius:20px; flex-shrink:0; }
     .rail-sep{ display:none; }
     .main-col{ padding:16px 16px 40px; }
     .chart-grid{ grid-template-columns:1fr; }
     .detail-panel{ width:100%; }
+    .checkbox, .disclose-btn, .progress-ring{ width:44px; height:44px; }
+    .checkbox::before{ width:20px; height:20px; }
+    .btn-ghost.small, .theme-toggle-btn, #settings-btn{ min-height:44px; }
+    .staff-remove{ min-width:44px; min-height:44px; }
   }
 </style>
 </head>
@@ -419,9 +425,7 @@
       </div>
       <div class="topbar-actions">
         <button class="btn-ghost small" id="theme-toggle-btn" title="Theme"></button>
-        <button class="btn-ghost small" id="import-badge">Import</button>
-        <button class="btn-ghost small" id="export-badge">Export</button>
-        <button class="sync-badge" id="sync-badge"><span class="sync-dot" id="sync-dot"></span><span id="sync-label">Sheet: not connected</span></button>
+        <button class="btn-ghost small" id="settings-btn" title="Settings"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
         <button class="btn-primary" id="btn-new">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           New
@@ -469,15 +473,13 @@
 <div class="palette-modal" id="palette-el"><div id="palette-content"></div></div>
 <input type="file" id="import-file-input" accept=".xlsx,.xls,.csv" style="display:none">
 <div id="popover-root"></div>
+<div class="bulk-bar" id="bulk-bar"></div>
 
 <script>
 (function(){
   "use strict";
 
-  /* =====================================================================
-     CONFIG
-     ===================================================================== */
-  var STORAGE_KEY = "governance_tracker_v3";
+    var STORAGE_KEY = "governance_tracker_v3";
   var SYNC_CONFIG_KEY = "governance_tracker_sync_cfg_v1";
 
   var PRIORITIES = ["medium","high","critical"];
@@ -486,10 +488,7 @@
   var PALETTE = ["#9A5B4C","#5B7C99","#5E7D63","#6B4A5E","#4A6B8A","#7A5C3E","#5C7A6B"];
   var CHEVRON_SVG = '<svg class="cselect-chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>';
 
-  /* =====================================================================
-     SEED DATA
-     ===================================================================== */
-  function seedData(){
+    function seedData(){
     var groups = [
       {id:"g1", name:"إيرادات"}, {id:"g2", name:"بحث"}, {id:"g3", name:"تقارير"},
       {id:"g4", name:"لجان"}, {id:"g5", name:"خطة المرور"}, {id:"g6", name:"نيابة"}
@@ -519,11 +518,7 @@
     return {groups:groups, staff:staff, items:items, nextItemId:15, nextGroupId:7, nextStaffId:6};
   }
 
-  /* =====================================================================
-     STORE — every read/write goes through here; nothing else touches
-     localStorage or the data object directly.
-     ===================================================================== */
-  var Store = (function(){
+    var Store = (function(){
     var data = null;
     var undoStack = [];
     function load(){
@@ -577,6 +572,14 @@
         persist();
         return label;
       },
+      deleteItems: function(ids){
+        var label = ids.length + " item" + (ids.length===1?"":"s") + " deleted";
+        pushUndo(label);
+        var idSet = {}; ids.forEach(function(id){ idSet[id]=true; });
+        data.items = data.items.filter(function(it){ return !idSet[it.id] && !idSet[it.parentId]; });
+        persist();
+        return label;
+      },
 
       addAssignee: function(id, staffId){
         var item=this.getItem(id); if(!item) return;
@@ -610,12 +613,9 @@
     };
     return api;
   })();
-  window.Store = Store; // exposed so the test harness can verify state directly
+  window.Store = Store;
 
-  /* =====================================================================
-     HELPERS
-     ===================================================================== */
-  function esc(s){
+    function esc(s){
     return String(s==null?"":s).replace(/[&<>"']/g, function(c){
       return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c];
     });
@@ -678,15 +678,28 @@
     return item.title.toLowerCase().indexOf(q)!==-1 || (item.notes||"").toLowerCase().indexOf(q)!==-1;
   }
 
-  var state = { rail:"all", tableFilter:"all", searchQuery:"", expanded:{} };
+  var activeFocusTrapCleanup = null;
+  function trapFocus(container){
+    releaseFocusTrap();
+    function handler(e){
+      if(e.key!=="Tab") return;
+      var focusables = container.querySelectorAll('button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])');
+      if(!focusables.length) return;
+      var first = focusables[0], last = focusables[focusables.length-1];
+      if(e.shiftKey && document.activeElement===first){ e.preventDefault(); last.focus(); }
+      else if(!e.shiftKey && document.activeElement===last){ e.preventDefault(); first.focus(); }
+    }
+    container.addEventListener("keydown", handler);
+    activeFocusTrapCleanup = function(){ container.removeEventListener("keydown", handler); };
+  }
+  function releaseFocusTrap(){
+    if(activeFocusTrapCleanup){ activeFocusTrapCleanup(); activeFocusTrapCleanup = null; }
+  }
+
+  var state = { rail:"all", tableFilter:"all", searchQuery:"", expanded:{}, selected:{} };
   var relistTimer = null;
 
-  /* =====================================================================
-     RENDER: rail navigation (the structural replacement for top tabs +
-     kanban columns — one register per group, plus All / Data overview /
-     Team, styled like tabs along the edge of a ledger).
-     ===================================================================== */
-  function renderRail(){
+    function renderRail(){
     var el = document.getElementById("rail-tabs");
     var groups = Store.getGroups();
     var counts = {};
@@ -711,6 +724,9 @@
   }
   function setRail(key){
     state.rail = key;
+    state.selected = {};
+    lastClickedRowId = null;
+    document.getElementById("bulk-bar").classList.remove("show");
     saveViewState();
     renderRail();
     var isList = (key!=="overview" && key!=="team");
@@ -725,11 +741,7 @@
   function saveViewState(){ try{ localStorage.setItem(VIEW_STATE_KEY, JSON.stringify({ rail:state.rail, filter:state.tableFilter })); }catch(e){} }
   function loadViewState(){ try{ var raw=localStorage.getItem(VIEW_STATE_KEY); if(raw) return JSON.parse(raw); }catch(e){} return null; }
 
-  /* =====================================================================
-     RENDER: dashboard stat strip — always reflects the whole workspace,
-     shown above the list pane. Real numbers to act on, not decoration.
-     ===================================================================== */
-  function renderStats(){
+    function renderStats(){
     var top = Store.getTopLevel();
     var open = top.filter(function(it){ return effectiveStatus(it)!=="done"; });
     var overdue = top.filter(isOverdue);
@@ -746,15 +758,7 @@
     }).join("");
   }
 
-  /* =====================================================================
-     RENDER: unified ledger list (replaces the old kanban board AND the
-     old flat table with one row-based view). Rail selection narrows by
-     group; filter chips narrow by status/overdue/critical/unassigned;
-     search narrows by text. Every leaf row (and every branch) gets a
-     one-click status toggle — no need to open the item just to mark
-     something done.
-     ===================================================================== */
-  function passesFilter(item){
+    function passesFilter(item){
     if(state.tableFilter==="all") return true;
     if(state.tableFilter==="critical") return item.priority==="critical" && effectiveStatus(item)!=="done";
     if(state.tableFilter==="overdue") return isOverdue(item);
@@ -762,9 +766,6 @@
     return effectiveStatus(item)===state.tableFilter;
   }
 
-  // Reorganizing around time rather than classification is the highest-
-  // value structural change here: bucket by due date instead of always
-  // showing one flat list.
   function dateSection(item){
     if(effectiveStatus(item)==="done") return "done";
     if(!item.date) return "nodate";
@@ -810,12 +811,12 @@
       order.forEach(function(pair){
         var list = buckets[pair[0]];
         if(!list.length) return;
-        html += '<div class="section-group"><div class="section-header">'+pair[1]+' <span class="section-count">'+list.length+'</span></div><div class="row-card">';
+        html += '<div class="section-group"><div class="section-header">'+pair[1]+' <span class="section-count">'+list.length+'</span></div><div class="row-card" role="list" aria-label="'+pair[1]+'">';
         list.forEach(function(it){ html += rowGroupHtml(it, showGroupTag, groupsById); });
         html += '</div></div>';
       });
     } else {
-      html += '<div class="row-card">';
+      html += '<div class="row-card" role="list">';
       items.forEach(function(it){ html += rowGroupHtml(it, showGroupTag, groupsById); });
       html += '</div>';
     }
@@ -825,7 +826,7 @@
   function priorityPillHtml(priority){
     if(priority==="critical") return '<span class="priority-pill critical">Critical</span>';
     if(priority==="high") return '<span class="priority-pill high">High</span>';
-    return ""; // silence for medium — urgency should be legible, not decorated everywhere
+    return "";
   }
 
   function rowGroupHtml(item, showGroupTag, groupsById){
@@ -833,8 +834,8 @@
     var eff = effectiveStatus(item);
     var overdue = isOverdue(item);
     var expanded = !!state.expanded[item.id];
-    var html = '<div class="row-wrap">';
-    html += '<div class="row" data-id="'+item.id+'">';
+    var html = '<div class="row-wrap" role="listitem">';
+    html += '<div class="row'+(state.selected[item.id]?" selected":"")+'" data-id="'+item.id+'" draggable="true">';
     if(kids.length){
       var progress = Store.progressOf(item.id);
       var pct = Math.round((progress.done/progress.total)*100);
@@ -871,13 +872,9 @@
   }
 
   function checkboxHtml(id, checked){
-    return '<button type="button" class="checkbox'+(checked?" checked":"")+'" data-status-toggle="'+id+'"><svg viewBox="0 0 24 24"><polyline points="4 13 9.5 18.5 20 6"/></svg></button>';
+    return '<button type="button" class="checkbox'+(checked?" checked":"")+'" data-status-toggle="'+id+'" role="checkbox" aria-checked="'+(checked?"true":"false")+'" aria-label="Mark done"><svg viewBox="0 0 24 24"><polyline points="4 13 9.5 18.5 20 6"/></svg></button>';
   }
 
-  // Targeted DOM update, not a full renderAll(): the row that changed gets
-  // patched in place so the checkmark-draw and strike-through transitions
-  // are actually visible, instead of the whole list being torn down and
-  // rebuilt mid-animation.
   function toggleDone(id){
     var item = Store.getItem(id);
     if(!item) return;
@@ -889,6 +886,7 @@
     if(cb){
       var checked = next==="done";
       cb.classList.toggle("checked", checked);
+      cb.setAttribute("aria-checked", checked ? "true" : "false");
       var titleEl = cb.parentElement.querySelector(".row-title");
       if(titleEl) titleEl.classList.toggle("done", checked);
     }
@@ -900,10 +898,6 @@
         if(ring) ring.style.background = "conic-gradient(var(--accent) 0% "+pct+"%, var(--surface-sunken) "+pct+"% 100%)";
       }
     }
-    // Let the strike-through/checkmark actually be seen before the row
-    // potentially moves to a different date section — resort after a
-    // short, deliberate pause rather than instantly, so the animation
-    // above isn't immediately undone by a full rebuild.
     if(state.tableFilter==="all"){
       clearTimeout(relistTimer);
       relistTimer = setTimeout(function(){ renderList(); }, 1100);
@@ -921,9 +915,73 @@
     if(discloseBtn) discloseBtn.classList.toggle("expanded", state.expanded[id]);
   }
 
-  /* =====================================================================
-     RENDER: staff — actionable numbers, not vanity ones
-     ===================================================================== */
+  var lastClickedRowId = null;
+  function toggleRowSelect(id){
+    if(state.selected[id]) delete state.selected[id]; else state.selected[id] = true;
+    lastClickedRowId = id;
+    updateSelectionUI();
+  }
+  function selectRowRange(toId){
+    var ids = Array.from(document.querySelectorAll("#list-wrap .row[data-id]")).map(function(el){ return el.getAttribute("data-id"); });
+    var i1 = lastClickedRowId ? ids.indexOf(lastClickedRowId) : ids.indexOf(toId);
+    var i2 = ids.indexOf(toId);
+    if(i1===-1||i2===-1) return;
+    var lo = Math.min(i1,i2), hi = Math.max(i1,i2);
+    for(var i=lo;i<=hi;i++){ state.selected[ids[i]] = true; }
+    lastClickedRowId = toId;
+    updateSelectionUI();
+  }
+  function clearSelection(){ state.selected = {}; lastClickedRowId = null; updateSelectionUI(); }
+  function updateSelectionUI(){
+    document.querySelectorAll("#list-wrap .row[data-id]").forEach(function(el){
+      el.classList.toggle("selected", !!state.selected[el.getAttribute("data-id")]);
+    });
+    renderBulkBar();
+  }
+  function renderBulkBar(){
+    var ids = Object.keys(state.selected);
+    var bar = document.getElementById("bulk-bar");
+    if(ids.length===0){ bar.classList.remove("show"); bar.innerHTML=""; return; }
+    bar.innerHTML = '<span class="bulk-count">'+ids.length+' selected</span>'
+      + '<button type="button" id="bulk-done-btn">Mark done</button>'
+      + '<button type="button" id="bulk-assign-btn">Assign to...</button>'
+      + '<button type="button" id="bulk-delete-btn">Delete</button>'
+      + '<button type="button" id="bulk-cancel-btn">Cancel</button>';
+    bar.classList.add("show");
+    document.getElementById("bulk-done-btn").onclick = function(){
+      ids.forEach(function(id){ Store.updateItem(id, {status:"done"}); });
+      clearSelection();
+      renderAll();
+    };
+    document.getElementById("bulk-delete-btn").onclick = function(){
+      var label = Store.deleteItems(ids);
+      clearSelection();
+      renderAll();
+      showUndoToast(label);
+    };
+    document.getElementById("bulk-assign-btn").onclick = function(){ openBulkAssignPopover(document.getElementById("bulk-assign-btn"), ids); };
+    document.getElementById("bulk-cancel-btn").onclick = clearSelection;
+  }
+  function openBulkAssignPopover(triggerEl, ids){
+    var staff = Store.getStaff();
+    var html = '<div class="cselect-panel">' + (staff.length ? staff.map(function(s){
+      return '<button type="button" class="cselect-opt" data-bulk-assign="'+s.id+'"><span dir="auto">'+esc(s.name)+'</span></button>';
+    }).join("") : '<div class="cselect-opt" style="color:var(--ink-faint);">No one to assign</div>') + '</div>';
+    popoverRoot.innerHTML = html;
+    popoverRoot.classList.add("show");
+    positionPopover(triggerEl, 200);
+    openTrigger = triggerEl;
+    popoverRoot.querySelectorAll("[data-bulk-assign]").forEach(function(btn){
+      btn.onclick = function(){
+        var staffId = btn.getAttribute("data-bulk-assign");
+        ids.forEach(function(id){ Store.addAssignee(id, staffId); });
+        closePopover();
+        clearSelection();
+        renderAll();
+      };
+    });
+  }
+
   function renderStaff(){
     var container = document.getElementById("staff-grid");
     var staff = Store.getStaff();
@@ -956,12 +1014,7 @@
     container.innerHTML = html;
   }
 
-  /* =====================================================================
-     RENDER: Data overview — real Chart.js charts, current-state
-     breakdowns (no history is tracked, so no trend lines — that would be
-     fabricated without stored time-series data).
-     ===================================================================== */
-  var chartInstances = {};
+    var chartInstances = {};
   function destroyChart(key){ if(chartInstances[key]){ chartInstances[key].destroy(); delete chartInstances[key]; } }
 
   function chartFont(){ return getComputedStyle(document.body).fontFamily; }
@@ -1053,9 +1106,6 @@
         }
       });
     }
-    // (no staff at all is a rare edge case — the canvas is simply left blank
-    // rather than replacing its DOM, so a future render still has a real
-    // <canvas> to draw into once people are added back)
   }
 
   function renderAll(){
@@ -1066,19 +1116,15 @@
     if(state.rail==="overview") renderDataOverview();
     renderSyncBadge();
   }
-  window.renderAll = renderAll; // exposed so the test harness can force a re-render after direct Store calls
+  window.renderAll = renderAll;
+  window.showToast = showToast;
 
-  /* =====================================================================
-     DETAIL PANEL — create + edit + branch + flexible assignee management.
-     Built once per open(); never rebuilt by renderAll(), so typing here
-     never loses cursor focus.
-     ===================================================================== */
-  var panelEl = document.getElementById("detail-panel");
+    var panelEl = document.getElementById("detail-panel");
   var backdropEl = document.getElementById("backdrop");
   var currentItemId = null;
 
-  function openDetail(id){ currentItemId=id; buildPanel(id); panelEl.classList.add("show"); backdropEl.classList.add("show"); }
-  function closeDetail(){ panelEl.classList.remove("show"); backdropEl.classList.remove("show"); currentItemId=null; renderAll(); }
+  function openDetail(id){ currentItemId=id; buildPanel(id); panelEl.classList.add("show"); backdropEl.classList.add("show"); trapFocus(panelEl); }
+  function closeDetail(){ panelEl.classList.remove("show"); backdropEl.classList.remove("show"); currentItemId=null; releaseFocusTrap(); renderAll(); }
 
   function cselectLabelFor(type, itemId, value){
     if(type==="group"){ var g=Store.getGroups().filter(function(g){ return g.id===value; })[0]; return g?g.name:""; }
@@ -1206,15 +1252,7 @@
     };
   }
 
-  /* =====================================================================
-     CUSTOM FORM CONTROLS — runtime
-     One shared floating "popover" root drives both the custom select
-     (group/status/priority/add-assignee) and the custom date picker.
-     Only one is ever open at a time. Clicking outside, or Escape, closes
-     whichever is open. Nothing here is a native <select> or
-     <input type="date">, so nothing falls back to browser/OS chrome.
-     ===================================================================== */
-  var popoverRoot = document.getElementById("popover-root");
+    var popoverRoot = document.getElementById("popover-root");
   var openTrigger = null;
   var dpYear, dpMonth;
 
@@ -1342,11 +1380,6 @@
     var dpTrigger = e.target.closest("[data-datepicker]");
     if(dpTrigger){ openDatePickerFor(dpTrigger); return; }
     if(!popoverRoot.classList.contains("show")) return;
-    // Use composedPath (fixed at dispatch time) rather than a live contains()
-    // check: rebuilding the popover's innerHTML on month-nav clicks detaches
-    // the clicked node from the tree, which would make a live contains()
-    // check wrongly think the click landed outside and close the popover
-    // it had just redrawn.
     var path = e.composedPath ? e.composedPath() : [e.target];
     if(path.indexOf(popoverRoot) !== -1) return;
     if(openTrigger && path.indexOf(openTrigger) !== -1) return;
@@ -1363,6 +1396,8 @@
     dismissExistingToasts();
     var el = document.createElement("div");
     el.className = "toast" + (kind?(" "+kind):"");
+    el.setAttribute("role", "status");
+    el.setAttribute("aria-live", "polite");
     el.textContent = message;
     document.body.appendChild(el);
     setTimeout(function(){ el.classList.add("show"); }, 10);
@@ -1376,6 +1411,8 @@
     dismissExistingToasts();
     var el = document.createElement("div");
     el.className = "toast";
+    el.setAttribute("role", "status");
+    el.setAttribute("aria-live", "polite");
     el.innerHTML = '<span>'+esc(message)+'</span><button type="button" class="toast-undo-btn">Undo</button>';
     document.body.appendChild(el);
     var undone = false;
@@ -1390,30 +1427,56 @@
     setTimeout(function(){ if(!undone) dismiss(); }, 5000);
   }
 
-  /* =====================================================================
-     CREATE PANEL — a dedicated, fast path for adding a new to-do.
-     Nothing is written to the Store until "Create" is pressed (so
-     cancelling never leaves an orphaned blank item behind, unlike the
-     old flow which created the item immediately). Classification and
-     priority are one-click pills; assignees are one-click avatar
-     toggles; branches can be drafted right here too, each with its own
-     title + assignees, and are created together with the parent in one
-     atomic action.
-     ===================================================================== */
   var createDraft = null;
   var createPanelEl = document.getElementById("create-panel-el");
+  var WEEKDAYS_EN = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"];
+  var WEEKDAYS_EN_LABEL = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  var WEEKDAYS_AR = ["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
+
+  function tomorrowISO(){ var d=new Date(); d.setDate(d.getDate()+1); return d.toISOString().slice(0,10); }
+  function nextWeekdayISO(targetDow){
+    var d = new Date();
+    var diff = (targetDow - d.getDay() + 7) % 7;
+    d.setDate(d.getDate() + diff);
+    return d.toISOString().slice(0,10);
+  }
+  function parseTrailingDateToken(text){
+    var patterns = [
+      { re:/\s*today\s*$/i, iso:function(){ return todayISO(); }, label:"Today" },
+      { re:/\s*tomorrow\s*$/i, iso:tomorrowISO, label:"Tomorrow" },
+      { re:/\s*اليوم\s*$/, iso:function(){ return todayISO(); }, label:"اليوم" },
+      { re:/\s*(غداً|غدا)\s*$/, iso:tomorrowISO, label:"غداً" }
+    ];
+    WEEKDAYS_EN.forEach(function(name, idx){
+      patterns.push({ re:new RegExp("\\s*"+name+"\\s*$","i"), iso:function(){ return nextWeekdayISO(idx); }, label:WEEKDAYS_EN_LABEL[idx] });
+    });
+    WEEKDAYS_AR.forEach(function(name, idx){
+      patterns.push({ re:new RegExp("\\s*"+name+"\\s*$"), iso:function(){ return nextWeekdayISO(idx); }, label:name });
+    });
+    for(var i=0;i<patterns.length;i++){
+      var m = text.match(patterns[i].re);
+      if(m && m[0].trim().length>0){
+        var clean = text.slice(0, text.length - m[0].length);
+        if(clean.trim().length===0) continue;
+        return { cleanTitle:clean, iso:patterns[i].iso(), label:patterns[i].label };
+      }
+    }
+    return null;
+  }
 
   function openCreatePanel(){
     var defaultGroupId = (state.rail!=="all" && state.rail!=="overview" && state.rail!=="team") ? state.rail : (Store.getGroups()[0] ? Store.getGroups()[0].id : null);
-    createDraft = { title:"", groupId:defaultGroupId, priority:"medium", assignees:[], branches:[] };
+    createDraft = { title:"", groupId:defaultGroupId, priority:"medium", assignees:[], branches:[], date:null };
     buildCreatePanel();
     createPanelEl.classList.add("show");
     backdropEl.classList.add("show");
+    trapFocus(createPanelEl);
   }
   function closeCreatePanel(){
     createPanelEl.classList.remove("show");
     backdropEl.classList.remove("show");
     createDraft = null;
+    releaseFocusTrap();
   }
 
   function toggleDraftAssignee(list, staffId){
@@ -1447,7 +1510,10 @@
     var html = "";
     html += '<button class="detail-close" id="create-close-btn">&times;</button><div style="clear:both;height:6px;"></div>';
     html += '<h2 style="font-size:16px;margin:0 0 16px;">New to-do</h2>';
-    html += '<div class="field"><input type="text" class="title-input" id="c-title" dir="auto" placeholder="What needs to get done?" value="'+esc(createDraft.title)+'"></div>';
+    html += '<div class="field"><input type="text" class="title-input" id="c-title" dir="auto" placeholder="What needs to get done? (try typing tomorrow, Sunday...)" value="'+esc(createDraft.title)+'"></div>';
+    if(createDraft.date){
+      html += '<div class="date-chip-row"><span class="date-chip">'+fmtDate(createDraft.date)+'<button type="button" id="c-date-clear">&times;</button></span></div>';
+    }
 
     html += '<div class="field"><label>Classification</label><div class="pill-row">';
     Store.getGroups().forEach(function(g, idx){
@@ -1478,7 +1544,28 @@
   function wireCreatePanelEvents(){
     document.getElementById("create-close-btn").onclick = closeCreatePanel;
     document.getElementById("create-cancel-btn").onclick = closeCreatePanel;
-    document.getElementById("c-title").addEventListener("input", function(e){ createDraft.title = e.target.value; });
+    document.getElementById("c-title").addEventListener("input", function(e){
+      var val = e.target.value;
+      var parsed = parseTrailingDateToken(val);
+      if(parsed){
+        createDraft.title = parsed.cleanTitle;
+        createDraft.date = parsed.iso;
+        buildCreatePanel();
+        var t = document.getElementById("c-title");
+        t.focus();
+        t.setSelectionRange(t.value.length, t.value.length);
+        return;
+      }
+      createDraft.title = val;
+    });
+    document.getElementById("c-title").addEventListener("keydown", function(e){
+      if(e.key==="Enter" && !e.shiftKey){
+        e.preventDefault();
+        if(e.metaKey || e.ctrlKey) submitCreate(true); else submitCreate(false);
+      }
+    });
+    var dateClearBtn = document.getElementById("c-date-clear");
+    if(dateClearBtn) dateClearBtn.onclick = function(){ createDraft.date = null; buildCreatePanel(); refocusCreateTitle(); };
 
     document.getElementById("create-panel-content").onclick = function(e){
       var gPill = e.target.closest("[data-c-group]");
@@ -1502,22 +1589,30 @@
       if(bTitle) createDraft.branches[parseInt(bTitle.getAttribute("data-c-branch-title"),10)].title = e.target.value;
     });
 
-    document.getElementById("create-submit-btn").onclick = function(){
-      if(!createDraft.title.trim()){ document.getElementById("c-title").focus(); return; }
-      var parent = Store.createItem({ title:createDraft.title.trim(), groupId:createDraft.groupId, priority:createDraft.priority, assignees:createDraft.assignees.slice() });
-      createDraft.branches.forEach(function(b){
-        if(!b.title.trim()) return;
-        Store.createItem({ parentId:parent.id, groupId:createDraft.groupId, title:b.title.trim(), priority:createDraft.priority, status:"todo", assignees:b.assignees.slice() });
-      });
-      closeCreatePanel();
-      renderAll();
-    };
+    document.getElementById("create-submit-btn").onclick = function(){ submitCreate(false); };
   }
 
-  /* =====================================================================
-     STAFF MANAGEMENT (add / remove people from the roster)
-     ===================================================================== */
-  function openAddStaffForm(){
+  function submitCreate(keepOpen){
+    if(!createDraft.title.trim()){ document.getElementById("c-title").focus(); return; }
+    var patch = { title:createDraft.title.trim(), groupId:createDraft.groupId, priority:createDraft.priority, assignees:createDraft.assignees.slice() };
+    if(createDraft.date) patch.date = createDraft.date;
+    var parent = Store.createItem(patch);
+    createDraft.branches.forEach(function(b){
+      if(!b.title.trim()) return;
+      Store.createItem({ parentId:parent.id, groupId:createDraft.groupId, title:b.title.trim(), priority:createDraft.priority, status:"todo", assignees:b.assignees.slice() });
+    });
+    renderAll();
+    if(keepOpen){
+      var groupId = createDraft.groupId;
+      createDraft = { title:"", groupId:groupId, priority:"medium", assignees:[], branches:[], date:null };
+      buildCreatePanel();
+      refocusCreateTitle();
+    } else {
+      closeCreatePanel();
+    }
+  }
+
+    function openAddStaffForm(){
     var addBtn = document.getElementById("add-staff-btn");
     if(!addBtn) return;
     addBtn.outerHTML = '<div class="mini-form" id="add-staff-form">'
@@ -1535,11 +1630,7 @@
     };
   }
 
-  /* =====================================================================
-     COMMAND PALETTE (Ctrl/Cmd+K) — searches tasks, people, classifications,
-     and a handful of actions, all from one box, with arrow-key navigation.
-     ===================================================================== */
-  var paletteEl = document.getElementById("palette-el");
+    var paletteEl = document.getElementById("palette-el");
   var paletteActiveIndex = 0;
   var paletteActionHandlers = [];
 
@@ -1548,9 +1639,11 @@
     paletteEl.classList.add("show");
     backdropEl.classList.add("show");
     document.getElementById("palette-input").focus();
+    trapFocus(paletteEl);
   }
   function closePalette(){
     paletteEl.classList.remove("show");
+    releaseFocusTrap();
     if(!panelEl.classList.contains("show") && !createPanelEl.classList.contains("show") && !syncPanelEl.classList.contains("show") && !importPanelEl.classList.contains("show")){
       backdropEl.classList.remove("show");
     }
@@ -1627,10 +1720,7 @@
     }
   });
 
-  /* =====================================================================
-     GOOGLE SHEETS SYNC (unchanged logic from the previous iteration)
-     ===================================================================== */
-  var SheetsSync = (function(){
+    var SheetsSync = (function(){
     var cfg = { clientId:"", sheetId:"" };
     var accessToken = null;
     var tokenClient = null;
@@ -1767,9 +1857,10 @@
   window.SheetsSync = SheetsSync;
 
   function renderSyncBadge(){
-    var dot=document.getElementById("sync-dot"), label=document.getElementById("sync-label");
-    if(SheetsSync.isConnected()){ dot.classList.add("connected"); label.textContent="Sheet: connected"; }
-    else { dot.classList.remove("connected"); label.textContent="Sheet: not connected"; }
+    var dot=document.getElementById("settings-sync-dot"), label=document.getElementById("settings-sync-label");
+    if(!dot||!label) return;
+    if(SheetsSync.isConnected()){ dot.classList.add("connected"); label.textContent="Connected"; }
+    else { dot.classList.remove("connected"); label.textContent="Not connected"; }
   }
 
   function buildSyncPanel(){
@@ -1798,22 +1889,10 @@
     document.getElementById("sync-push-btn").onclick = function(){ SheetsSync.push(); };
   }
   var syncPanelEl = document.getElementById("sync-panel-el");
-  function openSyncPanel(){ buildSyncPanel(); syncPanelEl.classList.add("show"); backdropEl.classList.add("show"); }
-  function closeSyncPanel(){ syncPanelEl.classList.remove("show"); backdropEl.classList.remove("show"); }
+  function openSyncPanel(){ buildSyncPanel(); syncPanelEl.classList.add("show"); backdropEl.classList.add("show"); trapFocus(syncPanelEl); }
+  function closeSyncPanel(){ syncPanelEl.classList.remove("show"); backdropEl.classList.remove("show"); releaseFocusTrap(); }
 
-  /* =====================================================================
-     IMPORT / EXPORT (XLSX + CSV via SheetJS)
-     One human-friendly, name-based column contract shared by both file
-     types and both directions:
-       Title | Date | Group | Assignees | Priority | Status | Notes | Parent
-     "Assignees" is semicolon-separated names, "*" suffix = lead
-     (e.g. "Sara*; Ahmed"). "Parent" is another row's exact title, for
-     re-importing branches. Unknown group/person names are created
-     automatically. The pure record-resolution logic below is unit-tested
-     directly; only the actual byte-level file parsing depends on SheetJS
-     being reachable at runtime.
-     ===================================================================== */
-  var ImportExport = (function(){
+    var ImportExport = (function(){
     var STATUS_ALIASES = { "todo":"todo","to do":"todo","backlog":"todo","in progress":"in_progress","in_progress":"in_progress","done":"done","complete":"done","completed":"done" };
     var PRIORITY_ALIASES = { "medium":"medium","med":"medium","high":"high","critical":"critical","urgent":"critical" };
     function normStatus(s){ return STATUS_ALIASES[(s||"").toString().trim().toLowerCase()] || "todo"; }
@@ -1915,10 +1994,6 @@
       return { groups:groups, staff:staff, items:items, nextGroupNum:nextGroupNum, nextStaffNum:nextStaffNum, nextItemNum:nextItemNum };
     }
 
-    // People-only import: matched by name (case-insensitive). Existing
-    // people keep their id (so their assignments survive); "replace"
-    // drops anyone not present in the file and strips them from any
-    // item they were assigned to, so nothing dangles.
     function resolvePeopleImport(records, existingStaff, nextStaffNum, mode){
       var staff = mode==="append" ? existingStaff.map(function(s){ return {id:s.id,name:s.name,dept:s.dept}; }) : [];
       var num = mode==="append" ? nextStaffNum : 1;
@@ -2067,13 +2142,10 @@
     };
   }
   var importPanelEl = document.getElementById("import-panel-el");
-  function openImportPanel(){ buildImportPanel(); importPanelEl.classList.add("show"); backdropEl.classList.add("show"); }
-  function closeImportPanel(){ importPanelEl.classList.remove("show"); backdropEl.classList.remove("show"); }
+  function openImportPanel(){ buildImportPanel(); importPanelEl.classList.add("show"); backdropEl.classList.add("show"); trapFocus(importPanelEl); }
+  function closeImportPanel(){ importPanelEl.classList.remove("show"); backdropEl.classList.remove("show"); releaseFocusTrap(); }
 
-  /* =====================================================================
-     GLOBAL EVENTS
-     ===================================================================== */
-  function openAddGroupForm(){
+    function openAddGroupForm(){
     var addBtn = document.getElementById("rail-add-group-btn");
     if(!addBtn) return;
     addBtn.outerHTML = '<div class="rail-add-form" id="rail-add-form">'
@@ -2095,6 +2167,34 @@
     if(addBtn){ openAddGroupForm(); return; }
     var tab = e.target.closest("[data-rail]");
     if(tab){ setRail(tab.getAttribute("data-rail")); }
+  });
+  document.getElementById("rail-tabs").addEventListener("dragover", function(e){
+    var tab = e.target.closest('.rail-tab[data-rail]');
+    if(!tab) return;
+    var key = tab.getAttribute("data-rail");
+    if(key==="all" || key==="overview" || key==="team") return;
+    e.preventDefault();
+    tab.classList.add("drag-over");
+  });
+  document.getElementById("rail-tabs").addEventListener("dragleave", function(e){
+    var tab = e.target.closest('.rail-tab[data-rail]');
+    if(tab) tab.classList.remove("drag-over");
+  });
+  document.getElementById("rail-tabs").addEventListener("drop", function(e){
+    var tab = e.target.closest('.rail-tab[data-rail]');
+    if(!tab) return;
+    var groupId = tab.getAttribute("data-rail");
+    if(groupId==="all" || groupId==="overview" || groupId==="team") return;
+    e.preventDefault();
+    tab.classList.remove("drag-over");
+    var itemId = e.dataTransfer.getData("text/plain");
+    if(!itemId) return;
+    var item = Store.getItem(itemId);
+    var group = Store.getGroups().filter(function(g){ return g.id===groupId; })[0];
+    if(!item || !group) return;
+    Store.updateItem(itemId, {groupId:groupId});
+    renderAll();
+    showToast('Moved "' + (item.title||"Untitled") + '" to ' + group.name);
   });
 
   document.getElementById("filter-chips").addEventListener("click", function(e){
@@ -2120,9 +2220,23 @@
     document.getElementById("quick-add-input").focus();
   });
   document.getElementById("btn-new").addEventListener("click", function(){ openCreatePanel(); });
-  document.getElementById("sync-badge").addEventListener("click", openSyncPanel);
-  document.getElementById("import-badge").addEventListener("click", openImportPanel);
-  document.getElementById("export-badge").addEventListener("click", function(){ ImportExport.exportXlsx(); });
+  function openSettingsPopover(triggerEl){
+    var connected = SheetsSync.isConnected();
+    var html = '<div class="settings-panel">'
+      + '<button type="button" class="settings-row" data-settings-action="import">Import data...</button>'
+      + '<button type="button" class="settings-row" data-settings-action="export">Export data</button>'
+      + '<div class="settings-sep"></div>'
+      + '<button type="button" class="settings-row" data-settings-action="sync"><span class="sync-dot-inline' + (connected?" connected":"") + '" id="settings-sync-dot"></span>Google Sheets sync<span class="settings-row-sub" id="settings-sync-label">' + (connected?"Connected":"Not connected") + '</span></button>'
+      + '</div>';
+    popoverRoot.innerHTML = html;
+    popoverRoot.classList.add("show");
+    positionPopover(triggerEl, 220);
+    openTrigger = triggerEl;
+    popoverRoot.querySelector('[data-settings-action="import"]').onclick = function(){ closePopover(); openImportPanel(); };
+    popoverRoot.querySelector('[data-settings-action="export"]').onclick = function(){ closePopover(); ImportExport.exportXlsx(); };
+    popoverRoot.querySelector('[data-settings-action="sync"]').onclick = function(){ closePopover(); openSyncPanel(); };
+  }
+  document.getElementById("settings-btn").addEventListener("click", function(e){ openSettingsPopover(e.currentTarget); });
 
   document.getElementById("stat-strip").addEventListener("click", function(e){
     var pill = e.target.closest("[data-goto-filter]");
@@ -2141,15 +2255,22 @@
     if(disclose){ toggleExpand(disclose.getAttribute("data-toggle-expand")); return; }
     var row = e.target.closest(".row[data-id]");
     if(!row) return;
+    var id = row.getAttribute("data-id");
+    if(e.shiftKey){ e.preventDefault(); selectRowRange(id); return; }
+    if(e.metaKey || e.ctrlKey){ e.preventDefault(); toggleRowSelect(id); return; }
     var titleEl = e.target.closest(".row-title");
     if(titleEl){
-      // Give a dblclick (inline edit) a brief window to cancel this before
-      // it opens the full detail panel.
       clearTimeout(titleClickTimer);
       titleClickTimer = setTimeout(function(){ openDetail(row.getAttribute("data-id")); }, 230);
       return;
     }
-    openDetail(row.getAttribute("data-id"));
+    openDetail(id);
+  });
+  document.getElementById("list-wrap").addEventListener("dragstart", function(e){
+    var row = e.target.closest(".row[data-id]");
+    if(!row){ e.preventDefault(); return; }
+    e.dataTransfer.setData("text/plain", row.getAttribute("data-id"));
+    e.dataTransfer.effectAllowed = "move";
   });
   document.getElementById("list-wrap").addEventListener("dblclick", function(e){
     var titleEl = e.target.closest(".row-title");
@@ -2194,9 +2315,11 @@
       if(document.getElementById("create-panel-el").classList.contains("show")) closeCreatePanel();
       if(syncPanelEl.classList.contains("show")) closeSyncPanel();
       if(importPanelEl.classList.contains("show")) closeImportPanel();
+      if(Object.keys(state.selected).length) clearSelection();
     }
   });
-  var THEME_KEY = "governance_tracker_theme_v1";
+
+    var THEME_KEY = "governance_tracker_theme_v1";
   var THEME_ICONS = {
     auto: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18z" fill="currentColor" stroke="none"/></svg>',
     light: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2 12h2.5M19.5 12H22M4.2 19.8L6 18M18 6l1.8-1.8"/></svg>',
@@ -2217,8 +2340,6 @@
     renderDataOverviewIfVisible();
   }
   function renderDataOverviewIfVisible(){
-    // chart colors are set once at draw time, not via CSS vars, so a
-    // theme flip while Insights is open needs a redraw to match
     if(state.rail==="overview") renderDataOverview();
   }
   function cycleTheme(){
@@ -2238,7 +2359,8 @@
     document.getElementById("pane-overview").classList.toggle("active", state.rail==="overview");
     document.getElementById("pane-team").classList.toggle("active", state.rail==="team");
   }
-  applyTheme(currentThemeMode());
+
+    applyTheme(currentThemeMode());
   Store.init();
   restoreViewState();
   renderAll();
