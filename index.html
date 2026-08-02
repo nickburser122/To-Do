@@ -164,8 +164,8 @@
   .row-card{ background:var(--bg-raised); border-radius:var(--radius); box-shadow:var(--shadow-sm); overflow:hidden; }
   .row-wrap:last-child > .row{ border-bottom:none; }
   .row{ display:flex; align-items:center; gap:10px; padding:12px 16px; min-height:46px; cursor:pointer; border-bottom:1px solid var(--hairline); transition:background .12s var(--ease-out); }
-  .row:hover{ background:var(--surface-2); }
-  .row.selected{ background:var(--accent-soft); }
+  .row:hover{ background:var(--surface-2); --roundel-ring:var(--surface-2); }
+  .row.selected{ background:var(--accent-soft); --roundel-ring:var(--accent-soft); }
   .rail-tab.drag-over{ box-shadow:0 0 0 2px var(--accent) inset; }
 
   .bulk-bar{
@@ -182,7 +182,7 @@
   .row.branch-row-list{ padding-inline-start:46px; min-height:40px; }
 
   .checkbox{
-    width:20px; height:20px; border-radius:50%; flex-shrink:0; padding:0; margin:0;
+    width:20px; height:20px; border-radius:50%; flex-shrink:0; padding:0; margin:0; position:relative;
     border:1.5px solid var(--ink-faint); background:transparent; display:flex; align-items:center; justify-content:center;
     transition:background .16s var(--ease-out), border-color .16s var(--ease-out), transform .12s var(--ease-out);
   }
@@ -192,10 +192,10 @@
   .checkbox svg{ width:12px; height:12px; stroke:#fff; stroke-width:3; fill:none; stroke-dasharray:20; stroke-dashoffset:20; transition:stroke-dashoffset .24s var(--ease-out); }
   .checkbox.checked svg{ stroke-dashoffset:0; }
 
-  .disclose-btn{ width:20px; height:20px; flex-shrink:0; border:none; background:transparent; color:var(--ink-faint); display:flex; align-items:center; justify-content:center; padding:0; transition:transform .16s var(--ease-out); }
+  .disclose-btn{ width:20px; height:20px; flex-shrink:0; border:none; background:transparent; color:var(--ink-faint); display:flex; align-items:center; justify-content:center; padding:0; position:relative; transition:transform .16s var(--ease-out); }
   .disclose-btn.expanded{ transform:rotate(90deg); }
   .progress-ring{ width:20px; height:20px; border-radius:50%; flex-shrink:0; position:relative; }
-  .progress-ring::after{ content:""; position:absolute; inset:3px; border-radius:50%; background:var(--bg-raised); }
+  .progress-ring::after{ content:""; position:absolute; inset:3px; border-radius:50%; background:var(--roundel-ring, var(--bg-raised)); }
 
   .row-title{ flex:1; min-width:0; font-size:15px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; transition:color .16s var(--ease-out); }
   .row-title.small{ font-size:14px; }
@@ -206,11 +206,12 @@
   .row-date{ font-size:12.5px; color:var(--ink-faint); flex-shrink:0; }
   .row-date.overdue{ color:var(--danger); font-weight:600; }
 
-  .children-wrap{ max-height:0; overflow:hidden; transition:max-height .28s var(--ease-out); }
-  .children-wrap.expanded{ max-height:900px; }
+  .children-wrap{ display:grid; grid-template-rows:0fr; transition:grid-template-rows .28s var(--ease-out); }
+  .children-wrap.expanded{ grid-template-rows:1fr; }
+  .children-wrap-inner{ overflow:hidden; min-height:0; }
 
   .avatars{ display:flex; flex-shrink:0; }
-  .roundel{ position:relative; width:22px; height:22px; border-radius:50%; color:#fff; font-size:10.5px; font-weight:600; display:flex; align-items:center; justify-content:center; border:2px solid var(--bg-raised); margin-inline-start:-7px; flex-shrink:0; }
+  .roundel{ position:relative; width:22px; height:22px; border-radius:50%; color:#fff; font-size:10.5px; font-weight:600; display:flex; align-items:center; justify-content:center; border:2px solid var(--roundel-ring, var(--bg-raised)); margin-inline-start:-7px; flex-shrink:0; }
   .roundel:first-child{ margin-inline-start:0; }
   .roundel.small{ width:18px; height:18px; font-size:9px; border-width:1.5px; margin-inline-start:-6px; }
   .lead-badge{ position:absolute; bottom:-2px; inset-inline-end:-2px; width:7px; height:7px; border-radius:50%; background:var(--brass); box-shadow:0 0 0 1.5px var(--bg-raised); }
@@ -292,6 +293,8 @@
   .date-chip-row{ margin:-6px 0 14px; }
   .date-chip{ display:inline-flex; align-items:center; gap:6px; background:var(--accent-soft); color:var(--accent-ink); font-size:12px; font-weight:600; padding:4px 6px 4px 10px; border-radius:999px; }
   .date-chip button{ border:none; background:transparent; color:var(--accent-ink); font-size:13px; line-height:1; padding:2px; }
+  .date-chip.suggestion{ background:var(--brass-soft); color:var(--brass-ink); }
+  .date-chip.suggestion button{ color:var(--brass-ink); }
   .section-title{ font-size:13px; font-weight:600; color:var(--ink-faint); margin:22px 0 10px; display:flex; align-items:center; justify-content:space-between; }
   .branch-edit-row{ border:1px solid var(--line); border-radius:var(--radius-sm); padding:10px; margin-bottom:8px; background:var(--bg); }
   .branch-edit-row .field-row{ margin-bottom:8px; }
@@ -399,8 +402,7 @@
     .main-col{ padding:16px 16px 40px; }
     .chart-grid{ grid-template-columns:1fr; }
     .detail-panel{ width:100%; }
-    .checkbox, .disclose-btn, .progress-ring{ width:44px; height:44px; }
-    .checkbox::before{ width:20px; height:20px; }
+    .checkbox::before, .disclose-btn::before{ content:""; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:44px; height:44px; }
     .btn-ghost.small, .theme-toggle-btn, #settings-btn{ min-height:44px; }
     .staff-remove{ min-width:44px; min-height:44px; }
   }
@@ -466,11 +468,11 @@
 </div>
 
 <div class="backdrop" id="backdrop"></div>
-<aside class="detail-panel" id="detail-panel"><div class="detail-content" id="detail-content"></div></aside>
-<aside class="detail-panel" id="create-panel-el"><div class="detail-content" id="create-panel-content"></div></aside>
-<aside class="detail-panel" id="sync-panel-el"><div class="detail-content" id="sync-panel-content"></div></aside>
-<aside class="detail-panel" id="import-panel-el"><div class="detail-content" id="import-panel-content"></div></aside>
-<div class="palette-modal" id="palette-el"><div id="palette-content"></div></div>
+<aside class="detail-panel" id="detail-panel" role="dialog" aria-modal="true"><div class="detail-content" id="detail-content"></div></aside>
+<aside class="detail-panel" id="create-panel-el" role="dialog" aria-modal="true"><div class="detail-content" id="create-panel-content"></div></aside>
+<aside class="detail-panel" id="sync-panel-el" role="dialog" aria-modal="true"><div class="detail-content" id="sync-panel-content"></div></aside>
+<aside class="detail-panel" id="import-panel-el" role="dialog" aria-modal="true"><div class="detail-content" id="import-panel-content"></div></aside>
+<div class="palette-modal" id="palette-el" role="dialog" aria-modal="true"><div id="palette-content"></div></div>
 <input type="file" id="import-file-input" accept=".xlsx,.xls,.csv" style="display:none">
 <div id="popover-root"></div>
 <div class="bulk-bar" id="bulk-bar"></div>
@@ -481,6 +483,7 @@
 
     var STORAGE_KEY = "governance_tracker_v3";
   var SYNC_CONFIG_KEY = "governance_tracker_sync_cfg_v1";
+  var BACKUP_KEY = "governance_tracker_v3_pre_replace_backup";
 
   var PRIORITIES = ["medium","high","critical"];
   var STATUSES = ["todo","in_progress","done"];
@@ -528,7 +531,22 @@
       }catch(e){ data = seedData(); }
       if(!data || !data.groups) data = seedData();
     }
-    function persist(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }catch(e){} }
+    var persistFailing = false;
+    function persist(){
+      try{
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        persistFailing = false;
+      }catch(e){
+        if(!persistFailing){
+          persistFailing = true;
+          var isQuota = e && (e.name==="QuotaExceededError" || e.code===22 || e.code===1014);
+          var msg = isQuota
+            ? "Storage is full — your changes aren't being saved. Export your data or free up space."
+            : "Couldn't save your changes locally.";
+          if(typeof showToast==="function") showToast(msg, "err");
+        }
+      }
+    }
     function pushUndo(label){
       undoStack.push({ label:label, data: JSON.parse(JSON.stringify(data)) });
       if(undoStack.length>30) undoStack.shift();
@@ -559,7 +577,7 @@
       createItem: function(patch){
         var item = Object.assign({
           id: "i"+(data.nextItemId++), parentId:null, groupId:data.groups[0]?data.groups[0].id:null,
-          title:"", date:new Date().toISOString().slice(0,10), assignees:[], priority:"medium", status:"todo", notes:""
+          title:"", date:todayISO(), assignees:[], priority:"medium", status:"todo", notes:""
         }, patch);
         data.items.push(item); persist(); return item;
       },
@@ -601,7 +619,12 @@
         return {done:done, total:kids.length};
       },
 
-      _replaceAll: function(newData){ data = newData; persist(); },
+      _replaceAll: function(newData, label){
+        pushUndo(label || "Data replaced");
+        try{ localStorage.setItem(BACKUP_KEY, JSON.stringify({ ts:Date.now(), label:label||"", data:data })); }catch(e){}
+        data = newData;
+        persist();
+      },
       _snapshot: function(){ return data; },
       undo: function(){
         if(undoStack.length===0) return false;
@@ -627,7 +650,12 @@
     var months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
     return months[d.getMonth()] + " " + d.getDate() + ", " + d.getFullYear();
   }
-  function todayISO(){ return new Date().toISOString().slice(0,10); }
+  function localISO(d){
+    d = d || new Date();
+    var y = d.getFullYear(), m = d.getMonth()+1, day = d.getDate();
+    return y + "-" + (m<10?"0"+m:m) + "-" + (day<10?"0"+day:day);
+  }
+  function todayISO(){ return localISO(new Date()); }
 
   function effectiveStatus(item){
     var kids = Store.getChildren(item.id);
@@ -677,13 +705,21 @@
     if(!q) return true; q=q.toLowerCase();
     return item.title.toLowerCase().indexOf(q)!==-1 || (item.notes||"").toLowerCase().indexOf(q)!==-1;
   }
+  function itemOrChildrenMatchSearch(item, q){
+    if(!q) return true;
+    if(matchesSearch(item, q)) return true;
+    return Store.getChildren(item.id).some(function(k){ return matchesSearch(k, q); });
+  }
 
   var activeFocusTrapCleanup = null;
+  var focusReturnEl = null;
+  var FOCUSABLE_SEL = 'button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
   function trapFocus(container){
     releaseFocusTrap();
+    focusReturnEl = document.activeElement;
     function handler(e){
       if(e.key!=="Tab") return;
-      var focusables = container.querySelectorAll('button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])');
+      var focusables = container.querySelectorAll(FOCUSABLE_SEL);
       if(!focusables.length) return;
       var first = focusables[0], last = focusables[focusables.length-1];
       if(e.shiftKey && document.activeElement===first){ e.preventDefault(); last.focus(); }
@@ -694,6 +730,10 @@
   }
   function releaseFocusTrap(){
     if(activeFocusTrapCleanup){ activeFocusTrapCleanup(); activeFocusTrapCleanup = null; }
+    if(focusReturnEl && document.body.contains(focusReturnEl) && typeof focusReturnEl.focus==="function"){
+      focusReturnEl.focus();
+    }
+    focusReturnEl = null;
   }
 
   var state = { rail:"all", tableFilter:"all", searchQuery:"", expanded:{}, selected:{} };
@@ -797,7 +837,7 @@
     var items = Store.getTopLevel().filter(function(it){
       if(state.rail!=="all" && it.groupId!==state.rail) return false;
       if(!passesFilter(it)) return false;
-      if(!matchesSearch(it, state.searchQuery)) return false;
+      if(!itemOrChildrenMatchSearch(it, state.searchQuery)) return false;
       return true;
     });
 
@@ -833,7 +873,8 @@
     var kids = Store.getChildren(item.id);
     var eff = effectiveStatus(item);
     var overdue = isOverdue(item);
-    var expanded = !!state.expanded[item.id];
+    var searchForcesExpand = !!state.searchQuery && !matchesSearch(item, state.searchQuery) && kids.some(function(k){ return matchesSearch(k, state.searchQuery); });
+    var expanded = !!state.expanded[item.id] || searchForcesExpand;
     var html = '<div class="row-wrap" role="listitem">';
     html += '<div class="row'+(state.selected[item.id]?" selected":"")+'" data-id="'+item.id+'" draggable="true">';
     if(kids.length){
@@ -851,9 +892,9 @@
     html += '<span class="row-date'+(overdue?" overdue":"")+'" title="'+fmtDate(item.date)+'">'+relDate(item)+'</span>';
     html += '</div>';
     if(kids.length){
-      html += '<div class="children-wrap'+(expanded?" expanded":"")+'" data-children-for="'+item.id+'">';
+      html += '<div class="children-wrap'+(expanded?" expanded":"")+'" data-children-for="'+item.id+'"><div class="children-wrap-inner">';
       kids.forEach(function(k){ html += branchRowGroupHtml(k); });
-      html += '</div>';
+      html += '</div></div>';
     }
     html += '</div>';
     return html;
@@ -1018,8 +1059,13 @@
   function destroyChart(key){ if(chartInstances[key]){ chartInstances[key].destroy(); delete chartInstances[key]; } }
 
   function chartFont(){ return getComputedStyle(document.body).fontFamily; }
+  function cssVar(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+  function gridColor(){ return cssVar("--hairline"); }
   function chartTooltip(){
-    return { backgroundColor:"#1C1A18", titleFont:{family:chartFont(),size:12}, bodyFont:{family:chartFont(),size:12}, padding:10, cornerRadius:10, displayColors:false };
+    return {
+      backgroundColor:cssVar("--ink"), titleColor:cssVar("--bg-raised"), bodyColor:cssVar("--bg-raised"),
+      titleFont:{family:chartFont(),size:12}, bodyFont:{family:chartFont(),size:12}, padding:10, cornerRadius:10, displayColors:false
+    };
   }
   function baseChartOptions(){
     return {
@@ -1027,7 +1073,7 @@
       plugins:{ legend:{ display:false }, tooltip:chartTooltip() },
       scales:{
         x:{ beginAtZero:true, ticks:{ precision:0, font:{family:chartFont()} }, grid:{ display:false }, border:{ display:false } },
-        y:{ beginAtZero:true, ticks:{ precision:0, font:{family:chartFont()} }, grid:{ color:"rgba(28,26,24,.075)" }, border:{ display:false } }
+        y:{ beginAtZero:true, ticks:{ precision:0, font:{family:chartFont()} }, grid:{ color:gridColor() }, border:{ display:false } }
       }
     };
   }
@@ -1041,9 +1087,9 @@
       var y = chart.chartArea.top + (chart.chartArea.bottom-chart.chartArea.top)/2;
       ctx.save();
       ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      ctx.fillStyle = "#1C1A18"; ctx.font = "600 22px " + chartFont();
+      ctx.fillStyle = cssVar("--ink"); ctx.font = "600 22px " + chartFont();
       ctx.fillText(String(total), x, y-8);
-      ctx.fillStyle = "#A29B93"; ctx.font = "12px " + chartFont();
+      ctx.fillStyle = cssVar("--ink-faint"); ctx.font = "12px " + chartFont();
       ctx.fillText("total", x, y+14);
       ctx.restore();
     }
@@ -1068,7 +1114,7 @@
     destroyChart("priority");
     chartInstances.priority = new Chart(document.getElementById("chart-priority"), {
       type:"bar",
-      data:{ labels:["Medium","High","Critical"], datasets:[{ data: PRIORITIES.map(function(p){ return top.filter(function(it){ return it.priority===p; }).length; }), backgroundColor:["#A29B93","#5B7C99","#AF4A42"], borderRadius:8, borderSkipped:false }] },
+      data:{ labels:["Medium","High","Critical"], datasets:[{ data: PRIORITIES.map(function(p){ return top.filter(function(it){ return it.priority===p; }).length; }), backgroundColor:[cssVar("--ink-faint"),cssVar("--warn"),cssVar("--danger")], borderRadius:8, borderSkipped:false }] },
       options: baseChartOptions()
     });
 
@@ -1076,7 +1122,7 @@
     var statusData = STATUSES.map(function(s){ return top.filter(function(it){ return effectiveStatus(it)===s; }).length; });
     var statusChart = new Chart(document.getElementById("chart-status"), {
       type:"doughnut",
-      data:{ labels:["To do","In progress","Done"], datasets:[{ data: statusData, backgroundColor:["#A29B93","#5B7C99","#5E7D63"], borderWidth:0 }] },
+      data:{ labels:["To do","In progress","Done"], datasets:[{ data: statusData, backgroundColor:[cssVar("--ink-faint"),cssVar("--warn"),cssVar("--ok")], borderWidth:0 }] },
       options:{ responsive:true, maintainAspectRatio:false, cutout:"72%", font:{family:chartFont()}, plugins:{ legend:{ display:true, position:"bottom", labels:{font:{family:chartFont(),size:12}} }, tooltip:chartTooltip() } },
       plugins:[centerTotalPlugin]
     });
@@ -1098,11 +1144,11 @@
       chartInstances.staff = new Chart(document.getElementById("chart-staff"), {
         type:"bar",
         data:{ labels: staff.map(function(p){ return p.name; }), datasets:[
-          { label:"On track", data:onTrack, backgroundColor:"#5E7D63", borderRadius:8, borderSkipped:false },
-          { label:"Overdue", data:overdueCounts, backgroundColor:"#AF4A42", borderRadius:8, borderSkipped:false }
+          { label:"On track", data:onTrack, backgroundColor:cssVar("--ok"), borderRadius:8, borderSkipped:false },
+          { label:"Overdue", data:overdueCounts, backgroundColor:cssVar("--danger"), borderRadius:8, borderSkipped:false }
         ]},
         options:{ responsive:true, maintainAspectRatio:false, indexAxis:"y", font:{family:chartFont()}, plugins:{ legend:{ display:true, position:"bottom", labels:{font:{family:chartFont(),size:12}} }, tooltip:chartTooltip() },
-          scales:{ x:{ stacked:true, beginAtZero:true, ticks:{precision:0,font:{family:chartFont()}}, grid:{color:"rgba(28,26,24,.075)"}, border:{display:false} }, y:{ stacked:true, grid:{display:false}, border:{display:false}, ticks:{font:{family:chartFont()}} } }
+          scales:{ x:{ stacked:true, beginAtZero:true, ticks:{precision:0,font:{family:chartFont()}}, grid:{color:gridColor()}, border:{display:false} }, y:{ stacked:true, grid:{display:false}, border:{display:false}, ticks:{font:{family:chartFont()}} } }
         }
       });
     }
@@ -1256,14 +1302,33 @@
   var openTrigger = null;
   var dpYear, dpMonth;
 
-  function closePopover(){ popoverRoot.classList.remove("show"); popoverRoot.innerHTML=""; openTrigger=null; }
+  function closePopoverOnViewportChange(){ closePopover(); }
+  function closePopover(){
+    popoverRoot.classList.remove("show"); popoverRoot.innerHTML=""; openTrigger=null;
+    window.removeEventListener("scroll", closePopoverOnViewportChange, true);
+    window.removeEventListener("resize", closePopoverOnViewportChange);
+  }
   function positionPopover(triggerEl, width){
+    var margin = 8;
+    var w = Math.min(width||240, window.innerWidth - margin*2);
     var r = triggerEl.getBoundingClientRect();
+    var panelH = popoverRoot.scrollHeight;
+
     var left = r.left;
-    var maxLeft = window.innerWidth - (width||240) - 8;
-    if(left > maxLeft) left = Math.max(8, maxLeft);
-    popoverRoot.style.top = (r.bottom + 6) + "px";
+    var maxLeft = window.innerWidth - w - margin;
+    left = Math.min(left, maxLeft);
+    left = Math.max(margin, left);
+
+    var top = r.bottom + 6;
+    var fitsBelow = (top + panelH) <= (window.innerHeight - margin);
+    if(!fitsBelow){
+      var above = r.top - 6 - panelH;
+      top = above >= margin ? above : Math.max(margin, window.innerHeight - margin - panelH);
+    }
     popoverRoot.style.left = left + "px";
+    popoverRoot.style.top = top + "px";
+    window.addEventListener("scroll", closePopoverOnViewportChange, true);
+    window.addEventListener("resize", closePopoverOnViewportChange);
   }
 
   function getCSelectOptions(type, itemId){
@@ -1433,12 +1498,12 @@
   var WEEKDAYS_EN_LABEL = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
   var WEEKDAYS_AR = ["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
 
-  function tomorrowISO(){ var d=new Date(); d.setDate(d.getDate()+1); return d.toISOString().slice(0,10); }
+  function tomorrowISO(){ var d=new Date(); d.setDate(d.getDate()+1); return localISO(d); }
   function nextWeekdayISO(targetDow){
     var d = new Date();
     var diff = (targetDow - d.getDay() + 7) % 7;
     d.setDate(d.getDate() + diff);
-    return d.toISOString().slice(0,10);
+    return localISO(d);
   }
   function parseTrailingDateToken(text){
     var patterns = [
@@ -1458,7 +1523,7 @@
       if(m && m[0].trim().length>0){
         var clean = text.slice(0, text.length - m[0].length);
         if(clean.trim().length===0) continue;
-        return { cleanTitle:clean, iso:patterns[i].iso(), label:patterns[i].label };
+        return { cleanTitle:clean, iso:patterns[i].iso(), label:patterns[i].label, matchedText:m[0] };
       }
     }
     return null;
@@ -1466,7 +1531,7 @@
 
   function openCreatePanel(){
     var defaultGroupId = (state.rail!=="all" && state.rail!=="overview" && state.rail!=="team") ? state.rail : (Store.getGroups()[0] ? Store.getGroups()[0].id : null);
-    createDraft = { title:"", groupId:defaultGroupId, priority:"medium", assignees:[], branches:[], date:null };
+    createDraft = { title:"", groupId:defaultGroupId, priority:"medium", assignees:[], branches:[], date:null, dateSuggestion:null, dismissedSuggestionKey:null };
     buildCreatePanel();
     createPanelEl.classList.add("show");
     backdropEl.classList.add("show");
@@ -1511,6 +1576,7 @@
     html += '<button class="detail-close" id="create-close-btn">&times;</button><div style="clear:both;height:6px;"></div>';
     html += '<h2 style="font-size:16px;margin:0 0 16px;">New to-do</h2>';
     html += '<div class="field"><input type="text" class="title-input" id="c-title" dir="auto" placeholder="What needs to get done? (try typing tomorrow, Sunday...)" value="'+esc(createDraft.title)+'"></div>';
+    html += '<div id="c-date-suggestion-row"></div>';
     if(createDraft.date){
       html += '<div class="date-chip-row"><span class="date-chip">'+fmtDate(createDraft.date)+'<button type="button" id="c-date-clear">&times;</button></span></div>';
     }
@@ -1539,6 +1605,33 @@
 
     content.innerHTML = html;
     wireCreatePanelEvents();
+    renderDateSuggestion();
+  }
+
+  function renderDateSuggestion(){
+    var row = document.getElementById("c-date-suggestion-row");
+    if(!row) return;
+    var s = createDraft.dateSuggestion;
+    if(!s){ row.innerHTML = ""; return; }
+    row.innerHTML = '<div class="date-chip-row"><span class="date-chip suggestion">Set date to '+esc(s.label)+'?'
+      + '<button type="button" id="c-date-suggest-accept" title="Use this date">&#10003;</button>'
+      + '<button type="button" id="c-date-suggest-dismiss" title="Keep as typed">&times;</button></span></div>';
+    document.getElementById("c-date-suggest-accept").onclick = function(){
+      createDraft.title = s.cleanTitle;
+      createDraft.date = s.iso;
+      createDraft.dateSuggestion = null;
+      createDraft.dismissedSuggestionKey = null;
+      buildCreatePanel();
+      var t = document.getElementById("c-title");
+      if(t){ t.focus(); t.setSelectionRange(t.value.length, t.value.length); }
+    };
+    document.getElementById("c-date-suggest-dismiss").onclick = function(){
+      createDraft.dismissedSuggestionKey = s.matchedText;
+      createDraft.dateSuggestion = null;
+      renderDateSuggestion();
+      var t = document.getElementById("c-title");
+      if(t) t.focus();
+    };
   }
 
   function wireCreatePanelEvents(){
@@ -1546,17 +1639,18 @@
     document.getElementById("create-cancel-btn").onclick = closeCreatePanel;
     document.getElementById("c-title").addEventListener("input", function(e){
       var val = e.target.value;
-      var parsed = parseTrailingDateToken(val);
-      if(parsed){
-        createDraft.title = parsed.cleanTitle;
-        createDraft.date = parsed.iso;
-        buildCreatePanel();
-        var t = document.getElementById("c-title");
-        t.focus();
-        t.setSelectionRange(t.value.length, t.value.length);
-        return;
-      }
       createDraft.title = val;
+      var parsed = parseTrailingDateToken(val);
+      if(parsed && parsed.matchedText===createDraft.dismissedSuggestionKey){
+        createDraft.dateSuggestion = null;
+      } else if(parsed){
+        createDraft.dateSuggestion = parsed;
+        createDraft.dismissedSuggestionKey = null;
+      } else {
+        createDraft.dateSuggestion = null;
+        createDraft.dismissedSuggestionKey = null;
+      }
+      renderDateSuggestion();
     });
     document.getElementById("c-title").addEventListener("keydown", function(e){
       if(e.key==="Enter" && !e.shiftKey){
@@ -1604,7 +1698,7 @@
     renderAll();
     if(keepOpen){
       var groupId = createDraft.groupId;
-      createDraft = { title:"", groupId:groupId, priority:"medium", assignees:[], branches:[], date:null };
+      createDraft = { title:"", groupId:groupId, priority:"medium", assignees:[], branches:[], date:null, dateSuggestion:null, dismissedSuggestionKey:null };
       buildCreatePanel();
       refocusCreateTitle();
     } else {
@@ -1823,7 +1917,8 @@
             var groups = rowsToGroups(vr[1]&&vr[1].values);
             var staff = rowsToStaff(vr[2]&&vr[2].values);
             if(groups.length===0 || staff.length===0){ notify("err","That sheet looks empty — push your current data to it first, or fill in the Items/Groups/Staff tabs."); return; }
-            Store._replaceAll({ groups:groups, staff:staff, items:items, nextItemId:maxIdNum(items,"i")+1, nextGroupId:maxIdNum(groups,"g")+1, nextStaffId:maxIdNum(staff,"s")+1 });
+            var prevCount = Store._snapshot().items.length;
+            Store._replaceAll({ groups:groups, staff:staff, items:items, nextItemId:maxIdNum(items,"i")+1, nextGroupId:maxIdNum(groups,"g")+1, nextStaffId:maxIdNum(staff,"s")+1 }, "Pulled from Sheets (replaced " + prevCount + " item" + (prevCount===1?"":"s") + ")");
             renderAll();
             notify("ok","Pulled "+items.length+" items, "+staff.length+" people, "+groups.length+" groups.");
           }).catch(function(err){ notify("err","Pull failed: "+err.message); });
@@ -2011,7 +2106,10 @@
         ? { groups:snap.groups, staff:snap.staff, items:snap.items, nextGroupNum:snap.nextGroupId, nextStaffNum:snap.nextStaffId, nextItemNum:snap.nextItemId }
         : { groups:[], staff:[], items:[], nextGroupNum:1, nextStaffNum:1, nextItemNum:1 };
       var result = resolveImport(records, base);
-      Store._replaceAll({ groups:result.groups, staff:result.staff, items:result.items, nextGroupId:result.nextGroupNum, nextStaffId:result.nextStaffNum, nextItemId:result.nextItemNum });
+      var label = mode==="replace"
+        ? "Imported (replaced " + snap.items.length + " item" + (snap.items.length===1?"":"s") + ")"
+        : "Imported " + records.length + " row" + (records.length===1?"":"s");
+      Store._replaceAll({ groups:result.groups, staff:result.staff, items:result.items, nextGroupId:result.nextGroupNum, nextStaffId:result.nextStaffNum, nextItemId:result.nextItemNum }, label);
     }
 
     function applyPeopleImport(records, mode){
@@ -2019,7 +2117,10 @@
       var result = resolvePeopleImport(records, snap.staff, snap.nextStaffId, mode);
       var validIds = {}; result.staff.forEach(function(s){ validIds[s.id]=true; });
       var items = snap.items.map(function(it){ return Object.assign({}, it, { assignees: it.assignees.filter(function(a){ return validIds[a.staffId]; }) }); });
-      Store._replaceAll({ groups:snap.groups, staff:result.staff, items:items, nextGroupId:snap.nextGroupId, nextStaffId:result.nextStaffNum, nextItemId:snap.nextItemId });
+      var label = mode==="replace"
+        ? "Imported people (replaced " + snap.staff.length + " person" + (snap.staff.length===1?"":"s") + ")"
+        : "Imported " + records.length + " person" + (records.length===1?"":"s");
+      Store._replaceAll({ groups:snap.groups, staff:result.staff, items:items, nextGroupId:snap.nextGroupId, nextStaffId:result.nextStaffNum, nextItemId:snap.nextItemId }, label);
     }
 
     function exportRows(){
@@ -2126,10 +2227,14 @@
         if(!records.length){ statusArea.innerHTML = '<div class="sync-status-msg err">No rows found — check the column headers.</div>'; return; }
         statusArea.innerHTML = '<div class="sync-status-msg ok">Found '+records.length+' row(s).</div>';
         var confirmArea = document.getElementById("import-confirm-area");
+        var destroyCount = importKind==="people" ? Store.getStaff().length : Store.getAllItems().length;
+        var destroyNoun = importKind==="people" ? ("person"+(destroyCount===1?"":"s")) : ("item"+(destroyCount===1?"":"s"));
+        var replaceLabel = (importKind==="people"?"Replace the people list":"Replace everything currently in the app")
+          + ' <span style="color:var(--ink-faint);">('+destroyCount+' existing '+destroyNoun+' will be deleted)</span>';
         confirmArea.innerHTML =
           '<div class="field"><label>What should this do?</label>'
           + '<label class="import-radio"><input type="radio" name="import-mode" value="append" checked> Add to what\'s already here</label>'
-          + '<label class="import-radio"><input type="radio" name="import-mode" value="replace"> '+(importKind==="people"?"Replace the people list":"Replace everything currently in the app")+'</label></div>'
+          + '<label class="import-radio"><input type="radio" name="import-mode" value="replace"> '+replaceLabel+'</label></div>'
           + '<button class="btn-primary" id="import-confirm-btn">Import</button>';
         document.getElementById("import-confirm-btn").onclick = function(){
           var mode = document.querySelector('input[name="import-mode"]:checked').value;
@@ -2348,6 +2453,12 @@
     applyTheme(next);
   }
   document.getElementById("theme-toggle-btn").addEventListener("click", cycleTheme);
+  if(window.matchMedia){
+    var darkModeQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    var onOsThemeChange = function(){ if(currentThemeMode()==="auto") renderDataOverviewIfVisible(); };
+    if(darkModeQuery.addEventListener) darkModeQuery.addEventListener("change", onOsThemeChange);
+    else if(darkModeQuery.addListener) darkModeQuery.addListener(onOsThemeChange);
+  }
   function restoreViewState(){
     var saved = loadViewState();
     if(!saved) return;
