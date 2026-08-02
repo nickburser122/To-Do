@@ -115,6 +115,21 @@
   .rail-sep{ height:1px; background:var(--line); margin:8px 10px; }
   .rail-add{ border:1.5px dashed var(--line); background:transparent; color:var(--ink-faint); border-radius:20px; padding:7px 10px; font-size:12px; margin-top:6px; }
   .rail-add:hover{ border-color:var(--brass); color:var(--brass-ink); }
+  .rail-tab-wrap{ display:flex; align-items:center; position:relative; border-radius:var(--radius-sm); }
+  .rail-tab-wrap .rail-tab{ flex:1; min-width:0; }
+  .rail-tab-wrap.drag-source{ opacity:0.5; }
+  .rail-tab-menu-btn{
+    flex-shrink:0; width:22px; height:22px; display:flex; align-items:center; justify-content:center;
+    border:none; background:transparent; color:var(--ink-faint); border-radius:7px; font-size:14px; line-height:1;
+    opacity:0; transition:opacity .12s var(--ease-out);
+  }
+  .rail-tab-wrap:hover .rail-tab-menu-btn, .rail-tab-menu-btn.menu-open{ opacity:1; }
+  .rail-tab-menu-btn:hover{ background:var(--line-soft); color:var(--ink); }
+  .rail-rename-row{ display:flex; align-items:center; gap:8px; width:100%; padding:8px 10px; }
+  .rail-inline-rename{ font-size:12.5px; }
+  .color-swatch-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:6px; padding:4px; }
+  .color-swatch-btn{ width:22px; height:22px; border-radius:50%; border:1.5px solid transparent; flex-shrink:0; }
+  .color-swatch-btn:hover{ border-color:var(--ink); transform:scale(1.08); }
 
   .main-col{ flex:1; min-width:0; padding:20px 28px 60px; }
   .pane{ display:none; }
@@ -240,6 +255,14 @@
   .staff-dept{ font-size:11px; color:var(--ink-faint); }
   .staff-remove{ position:absolute; top:12px; inset-inline-end:12px; border:none; background:transparent; color:var(--ink-faint); font-size:14px; }
   .staff-remove:hover{ color:var(--danger); }
+  .cat-manage-row{ display:flex; align-items:center; gap:10px; padding:9px 12px; margin-bottom:8px; }
+  .cat-manage-row.drag-over{ box-shadow:0 0 0 2px var(--accent) inset; }
+  .cat-manage-row.drag-source{ opacity:0.5; }
+  .cat-drag-handle{ cursor:grab; color:var(--ink-faint); font-size:13px; flex-shrink:0; letter-spacing:-2px; }
+  .cat-swatch-btn{ width:20px; height:20px; border-radius:50%; border:none; flex-shrink:0; transition:transform .12s var(--ease-out); }
+  .cat-swatch-btn:hover{ transform:scale(1.12); }
+  .cat-manage-name{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:600; font-size:13px; }
+  .cat-manage-count{ font-size:11.5px; color:var(--ink-faint); flex-shrink:0; }
   .staff-stats{ display:flex; gap:16px; margin:14px 0 8px; }
   .stat-num{ font-size:19px; font-weight:600; }
   .stat-num.danger{ color:var(--danger); }
@@ -343,6 +366,7 @@
   .cselect-opt{ display:flex; align-items:center; gap:8px; width:100%; text-align:start; border:none; background:transparent; padding:8px 10px; border-radius:9px; font-size:12.5px; color:var(--ink); }
   .cselect-opt:hover{ background:var(--line-soft); }
   .cselect-opt.selected{ background:var(--accent-soft); color:var(--accent-ink); font-weight:600; }
+  .cselect-new-opt{ border-top:1px solid var(--line); margin-top:4px; padding-top:9px; color:var(--brass-ink); font-weight:600; }
   .cselect-swatch{ width:9px; height:9px; border-radius:50%; flex-shrink:0; }
 
   .datepicker-panel{ background:var(--bg-raised); border:1px solid var(--line); border-radius:var(--radius-sm); box-shadow:var(--shadow-md); padding:12px; width:230px; }
@@ -472,6 +496,7 @@
 <aside class="detail-panel" id="create-panel-el" role="dialog" aria-modal="true"><div class="detail-content" id="create-panel-content"></div></aside>
 <aside class="detail-panel" id="sync-panel-el" role="dialog" aria-modal="true"><div class="detail-content" id="sync-panel-content"></div></aside>
 <aside class="detail-panel" id="import-panel-el" role="dialog" aria-modal="true"><div class="detail-content" id="import-panel-content"></div></aside>
+<aside class="detail-panel" id="categories-panel-el" role="dialog" aria-modal="true"><div class="detail-content" id="categories-panel-content"></div></aside>
 <div class="palette-modal" id="palette-el" role="dialog" aria-modal="true"><div id="palette-content"></div></div>
 <input type="file" id="import-file-input" accept=".xlsx,.xls,.csv" style="display:none">
 <div id="popover-root"></div>
@@ -484,6 +509,7 @@
     var STORAGE_KEY = "governance_tracker_v3";
   var SYNC_CONFIG_KEY = "governance_tracker_sync_cfg_v1";
   var BACKUP_KEY = "governance_tracker_v3_pre_replace_backup";
+  var CATEGORY_MIGRATION_BACKUP_KEY = "governance_tracker_v3_pre_categories_migration";
 
   var PRIORITIES = ["medium","high","critical"];
   var STATUSES = ["todo","in_progress","done"];
@@ -524,12 +550,32 @@
     var Store = (function(){
     var data = null;
     var undoStack = [];
+    function needsCategoryMigration(d){
+      return (d.groups||[]).some(function(g){ return g.color==null || g.order==null; })
+        || (d.staff||[]).some(function(s){ return s.color==null; });
+    }
+    function ensureGroupDefaults(groups){
+      groups.forEach(function(g, idx){
+        if(g.color==null) g.color = PALETTE[idx % PALETTE.length];
+        if(g.order==null) g.order = idx;
+      });
+      groups.sort(function(a,b){ return a.order-b.order; });
+    }
+    function ensureStaffDefaults(staff){
+      staff.forEach(function(s, idx){ if(s.color==null) s.color = PALETTE[idx % PALETTE.length]; });
+    }
     function load(){
       try{
         var raw = localStorage.getItem(STORAGE_KEY);
         data = raw ? JSON.parse(raw) : seedData();
       }catch(e){ data = seedData(); }
       if(!data || !data.groups) data = seedData();
+      if(needsCategoryMigration(data)){
+        try{ localStorage.setItem(CATEGORY_MIGRATION_BACKUP_KEY, JSON.stringify({ ts:Date.now(), data:data })); }catch(e){}
+        ensureGroupDefaults(data.groups);
+        ensureStaffDefaults(data.staff);
+        persist();
+      }
     }
     var persistFailing = false;
     function persist(){
@@ -554,12 +600,49 @@
 
     var api = {
       init: function(){ load(); },
-      getGroups: function(){ return data.groups; },
-      addGroup: function(name){ var id="g"+(data.nextGroupId++); data.groups.push({id:id,name:name}); persist(); return id; },
+      getGroups: function(){ return data.groups.slice().sort(function(a,b){ return (a.order||0)-(b.order||0); }); },
+      addGroup: function(name){
+        var id="g"+(data.nextGroupId++);
+        var maxOrder = data.groups.reduce(function(m,g){ return Math.max(m, g.order||0); }, -1);
+        var color = PALETTE[data.groups.length % PALETTE.length];
+        data.groups.push({id:id, name:name, color:color, order:maxOrder+1});
+        persist();
+        return id;
+      },
+      updateGroup: function(id, patch){
+        var g = data.groups.filter(function(g){ return g.id===id; })[0];
+        if(!g) return null;
+        Object.assign(g, patch);
+        persist();
+        return g;
+      },
+      deleteGroup: function(id, reassignToId){
+        var group = data.groups.filter(function(g){ return g.id===id; })[0];
+        var label = group ? ('Deleted category "' + group.name + '"') : "Deleted category";
+        pushUndo(label);
+        data.groups = data.groups.filter(function(g){ return g.id!==id; });
+        data.items.forEach(function(it){ if(it.groupId===id) it.groupId = reassignToId || null; });
+        persist();
+        return label;
+      },
+      reorderGroups: function(orderedIds){
+        orderedIds.forEach(function(id, idx){
+          var g = data.groups.filter(function(g){ return g.id===id; })[0];
+          if(g) g.order = idx;
+        });
+        data.groups.sort(function(a,b){ return (a.order||0)-(b.order||0); });
+        persist();
+      },
 
       getStaff: function(){ return data.staff; },
       getStaffById: function(id){ for(var i=0;i<data.staff.length;i++){ if(data.staff[i].id===id) return data.staff[i]; } return null; },
-      addStaff: function(name, dept){ var id="s"+(data.nextStaffId++); data.staff.push({id:id,name:name,dept:dept||""}); persist(); return id; },
+      addStaff: function(name, dept){
+        var id="s"+(data.nextStaffId++);
+        var color = PALETTE[data.staff.length % PALETTE.length];
+        data.staff.push({id:id, name:name, dept:dept||"", color:color});
+        persist();
+        return id;
+      },
       deleteStaff: function(id){
         var person = this.getStaffById(id);
         pushUndo("Removed " + (person?person.name:"person"));
@@ -622,6 +705,8 @@
       _replaceAll: function(newData, label){
         pushUndo(label || "Data replaced");
         try{ localStorage.setItem(BACKUP_KEY, JSON.stringify({ ts:Date.now(), label:label||"", data:data })); }catch(e){}
+        ensureGroupDefaults(newData.groups||[]);
+        ensureStaffDefaults(newData.staff||[]);
         data = newData;
         persist();
       },
@@ -677,9 +762,8 @@
     return kids.every(function(k){ return k.assignees.length===0; });
   }
   function colorForStaff(staffId){
-    var staff = Store.getStaff(); var idx=0;
-    for(var i=0;i<staff.length;i++){ if(staff[i].id===staffId){ idx=i; break; } }
-    return PALETTE[idx % PALETTE.length];
+    var s = Store.getStaffById(staffId);
+    return (s && s.color) || PALETTE[0];
   }
   function initial(name){ return (name||"?").trim().charAt(0); }
   function lightenHex(hex, pct){
@@ -743,24 +827,32 @@
     var el = document.getElementById("rail-tabs");
     var groups = Store.getGroups();
     var counts = {};
-    Store.getTopLevel().forEach(function(it){ counts[it.groupId] = (counts[it.groupId]||0)+1; });
+    var unfiledCount = 0;
+    Store.getTopLevel().forEach(function(it){
+      if(it.groupId==null){ unfiledCount++; } else { counts[it.groupId] = (counts[it.groupId]||0)+1; }
+    });
 
     var html = railTabHtml("all", "All", null, Store.getTopLevel().length);
-    groups.forEach(function(g, idx){ html += railTabHtml(g.id, g.name, PALETTE[idx % PALETTE.length], counts[g.id]||0); });
+    groups.forEach(function(g){ html += railTabHtml(g.id, g.name, g.color, counts[g.id]||0, {groupId:g.id}); });
+    if(unfiledCount>0) html += railTabHtml("unfiled", "Unfiled", null, unfiledCount);
     html += '<div class="rail-sep"></div>';
     html += railTabHtml("overview", "Insights", null, null);
     html += railTabHtml("team", "Team", null, Store.getStaff().length);
     html += '<button class="rail-add" id="rail-add-group-btn">+ Group</button>';
     el.innerHTML = html;
   }
-  function railTabHtml(key, label, dotColor, count){
+  function railTabHtml(key, label, dotColor, count, opts){
+    opts = opts || {};
     var active = state.rail===key;
-    var html = '<button class="rail-tab'+(active?" active":"")+'" data-rail="'+key+'">';
-    if(dotColor) html += '<span class="rail-dot" style="background:'+dotColor+'"></span>';
-    html += '<span class="rail-label" dir="auto">'+esc(label)+'</span>';
-    if(count!=null) html += '<span class="rail-count">'+count+'</span>';
-    html += '</button>';
-    return html;
+    var dragAttr = opts.groupId ? ' draggable="true" data-group-drag="'+opts.groupId+'"' : '';
+    var btn = '<button class="rail-tab'+(active?" active":"")+'" data-rail="'+key+'"'+dragAttr+'>';
+    if(dotColor) btn += '<span class="rail-dot" style="background:'+dotColor+'"></span>';
+    btn += '<span class="rail-label" dir="auto">'+esc(label)+'</span>';
+    if(count!=null) btn += '<span class="rail-count">'+count+'</span>';
+    btn += '</button>';
+    if(!opts.groupId) return btn;
+    return '<div class="rail-tab-wrap" data-rail-wrap="'+opts.groupId+'">' + btn
+      + '<button type="button" class="rail-tab-menu-btn" data-rail-menu="'+opts.groupId+'" title="Category options">&#8942;</button></div>';
   }
   function setRail(key){
     state.rail = key;
@@ -835,7 +927,8 @@
     var showGroupTag = (state.rail==="all");
 
     var items = Store.getTopLevel().filter(function(it){
-      if(state.rail!=="all" && it.groupId!==state.rail) return false;
+      if(state.rail==="unfiled"){ if(it.groupId!=null) return false; }
+      else if(state.rail!=="all" && it.groupId!==state.rail){ return false; }
       if(!passesFilter(it)) return false;
       if(!itemOrChildrenMatchSearch(it, state.searchQuery)) return false;
       return true;
@@ -887,7 +980,7 @@
     }
     html += '<span class="row-title'+(eff==="done"?" done":"")+'" dir="auto">'+esc(item.title||"Untitled")+'</span>';
     html += priorityPillHtml(item.priority);
-    if(showGroupTag) html += '<span class="tag tag-group" dir="auto">'+esc(groupsById[item.groupId]||"")+'</span>';
+    if(showGroupTag) html += '<span class="tag tag-group" dir="auto">'+esc(groupsById[item.groupId]||"Unfiled")+'</span>';
     html += '<span class="avatars">'+item.assignees.map(function(a){ return assigneeAvatarHtml(a,true); }).join("")+'</span>';
     html += '<span class="row-date'+(overdue?" overdue":"")+'" title="'+fmtDate(item.date)+'">'+relDate(item)+'</span>';
     html += '</div>';
@@ -986,6 +1079,7 @@
     bar.innerHTML = '<span class="bulk-count">'+ids.length+' selected</span>'
       + '<button type="button" id="bulk-done-btn">Mark done</button>'
       + '<button type="button" id="bulk-assign-btn">Assign to...</button>'
+      + '<button type="button" id="bulk-move-btn">Move to category...</button>'
       + '<button type="button" id="bulk-delete-btn">Delete</button>'
       + '<button type="button" id="bulk-cancel-btn">Cancel</button>';
     bar.classList.add("show");
@@ -1001,7 +1095,28 @@
       showUndoToast(label);
     };
     document.getElementById("bulk-assign-btn").onclick = function(){ openBulkAssignPopover(document.getElementById("bulk-assign-btn"), ids); };
+    document.getElementById("bulk-move-btn").onclick = function(){ openBulkMovePopover(document.getElementById("bulk-move-btn"), ids); };
     document.getElementById("bulk-cancel-btn").onclick = clearSelection;
+  }
+  function openBulkMovePopover(triggerEl, ids){
+    var groups = Store.getGroups();
+    var opts = [{id:"", name:"Unfiled"}].concat(groups);
+    var html = '<div class="cselect-panel">' + opts.map(function(g){
+      return '<button type="button" class="cselect-opt" data-bulk-move="'+esc(g.id)+'"><span dir="auto">'+esc(g.name)+'</span></button>';
+    }).join("") + '</div>';
+    popoverRoot.innerHTML = html;
+    popoverRoot.classList.add("show");
+    positionPopover(triggerEl, 200);
+    openTrigger = triggerEl;
+    popoverRoot.querySelectorAll("[data-bulk-move]").forEach(function(btn){
+      btn.onclick = function(){
+        var groupId = btn.getAttribute("data-bulk-move") || null;
+        ids.forEach(function(id){ Store.updateItem(id, {groupId:groupId}); });
+        closePopover();
+        clearSelection();
+        renderAll();
+      };
+    });
   }
   function openBulkAssignPopover(triggerEl, ids){
     var staff = Store.getStaff();
@@ -1107,7 +1222,7 @@
     destroyChart("group");
     chartInstances.group = new Chart(document.getElementById("chart-group"), {
       type:"bar",
-      data:{ labels: groups.map(function(g){ return g.name; }), datasets:[{ data: groups.map(function(g){ return top.filter(function(it){ return it.groupId===g.id; }).length; }), backgroundColor: groups.map(function(g,i){ return PALETTE[i%PALETTE.length]; }), borderRadius:8, borderSkipped:false }] },
+      data:{ labels: groups.map(function(g){ return g.name; }), datasets:[{ data: groups.map(function(g){ return top.filter(function(it){ return it.groupId===g.id; }).length; }), backgroundColor: groups.map(function(g){ return g.color; }), borderRadius:8, borderSkipped:false }] },
       options: baseChartOptions()
     });
 
@@ -1161,6 +1276,7 @@
     if(state.rail==="team") renderStaff();
     if(state.rail==="overview") renderDataOverview();
     renderSyncBadge();
+    if(categoriesPanelEl && categoriesPanelEl.classList.contains("show")) buildCategoriesPanel();
   }
   window.renderAll = renderAll;
   window.showToast = showToast;
@@ -1173,7 +1289,7 @@
   function closeDetail(){ panelEl.classList.remove("show"); backdropEl.classList.remove("show"); currentItemId=null; releaseFocusTrap(); renderAll(); }
 
   function cselectLabelFor(type, itemId, value){
-    if(type==="group"){ var g=Store.getGroups().filter(function(g){ return g.id===value; })[0]; return g?g.name:""; }
+    if(type==="group"){ if(!value) return "Unfiled"; var g=Store.getGroups().filter(function(g){ return g.id===value; })[0]; return g?g.name:"Unfiled"; }
     if(type==="status"){ return STATUS_LABEL[value]||value; }
     if(type==="priority"){ return value ? value.charAt(0).toUpperCase()+value.slice(1) : ""; }
     return "";
@@ -1305,6 +1421,8 @@
   function closePopoverOnViewportChange(){ closePopover(); }
   function closePopover(){
     popoverRoot.classList.remove("show"); popoverRoot.innerHTML=""; openTrigger=null;
+    var openMenuBtn = document.querySelector(".rail-tab-menu-btn.menu-open");
+    if(openMenuBtn) openMenuBtn.classList.remove("menu-open");
     window.removeEventListener("scroll", closePopoverOnViewportChange, true);
     window.removeEventListener("resize", closePopoverOnViewportChange);
   }
@@ -1332,7 +1450,7 @@
   }
 
   function getCSelectOptions(type, itemId){
-    if(type==="group") return Store.getGroups().map(function(g){ return {value:g.id, label:g.name}; });
+    if(type==="group") return [{value:"", label:"Unfiled"}].concat(Store.getGroups().map(function(g){ return {value:g.id, label:g.name}; }));
     if(type==="status") return STATUSES.map(function(s){ return {value:s, label:STATUS_LABEL[s]}; });
     if(type==="priority") return PRIORITIES.map(function(p){ return {value:p, label:p.charAt(0).toUpperCase()+p.slice(1)}; });
     if(type==="addAssignee"){
@@ -1350,7 +1468,9 @@
     var options = getCSelectOptions(type, itemId);
     var html = '<div class="cselect-panel">' + (options.length ? options.map(function(o){
       return '<button type="button" class="cselect-opt'+(o.value===currentValue?" selected":"")+'" data-opt-value="'+esc(o.value)+'"><span dir="auto">'+esc(o.label)+'</span></button>';
-    }).join("") : '<div class="cselect-opt" style="color:var(--ink-faint);">Nobody left to add</div>') + '</div>';
+    }).join("") : '<div class="cselect-opt" style="color:var(--ink-faint);">Nobody left to add</div>');
+    if(type==="group") html += '<button type="button" class="cselect-opt cselect-new-opt" id="cselect-new-group-btn">+ New category&hellip;</button>';
+    html += '</div>';
     popoverRoot.innerHTML = html;
     popoverRoot.classList.add("show");
     positionPopover(triggerEl, 200);
@@ -1361,10 +1481,32 @@
         closePopover();
       };
     });
+    var newGroupBtn = document.getElementById("cselect-new-group-btn");
+    if(newGroupBtn){
+      newGroupBtn.onclick = function(){
+        var panel = popoverRoot.querySelector(".cselect-panel");
+        panel.innerHTML = '<div class="rail-add-form" style="margin:0;">'
+          + '<input type="text" id="cselect-new-group-name" placeholder="Category name" dir="auto">'
+          + '<div class="rail-add-form-foot"><button type="button" class="btn-ghost small" id="cselect-new-group-cancel">Cancel</button><button type="button" class="btn-primary" id="cselect-new-group-save" style="padding:5px 10px;font-size:12px;">Add</button></div>'
+          + '</div>';
+        var input = document.getElementById("cselect-new-group-name");
+        input.focus();
+        document.getElementById("cselect-new-group-cancel").onclick = function(){ closePopover(); };
+        function save(){
+          var name = input.value.trim();
+          if(!name) return;
+          var id = Store.addGroup(name);
+          applyCSelect(type, itemId, id, triggerEl);
+          closePopover();
+        }
+        document.getElementById("cselect-new-group-save").onclick = save;
+        input.addEventListener("keydown", function(ev){ if(ev.key==="Enter"){ ev.preventDefault(); save(); } });
+      };
+    }
   }
 
   function applyCSelect(type, itemId, value, triggerEl){
-    if(type==="group") Store.updateItem(itemId, {groupId:value});
+    if(type==="group") Store.updateItem(itemId, {groupId:value || null});
     else if(type==="status") Store.updateItem(itemId, {status:value});
     else if(type==="priority") Store.updateItem(itemId, {priority:value});
     else if(type==="addAssignee"){ if(value) Store.addAssignee(itemId, value); }
@@ -1581,10 +1723,12 @@
       html += '<div class="date-chip-row"><span class="date-chip">'+fmtDate(createDraft.date)+'<button type="button" id="c-date-clear">&times;</button></span></div>';
     }
 
-    html += '<div class="field"><label>Classification</label><div class="pill-row">';
-    Store.getGroups().forEach(function(g, idx){
-      html += '<button type="button" class="pill'+(g.id===createDraft.groupId?" selected":"")+'" data-c-group="'+g.id+'"><span class="pill-dot" style="background:'+PALETTE[idx%PALETTE.length]+'"></span><span dir="auto">'+esc(g.name)+'</span></button>';
+    html += '<div class="field"><label>Classification</label><div class="pill-row" id="c-group-pill-row">';
+    html += '<button type="button" class="pill'+(!createDraft.groupId?" selected":"")+'" data-c-group="">Unfiled</button>';
+    Store.getGroups().forEach(function(g){
+      html += '<button type="button" class="pill'+(g.id===createDraft.groupId?" selected":"")+'" data-c-group="'+g.id+'"><span class="pill-dot" style="background:'+g.color+'"></span><span dir="auto">'+esc(g.name)+'</span></button>';
     });
+    html += '<button type="button" class="pill" id="c-new-group-pill">+ New category</button>';
     html += '</div></div>';
 
     html += '<div class="field"><label>Priority</label><div class="pill-row">';
@@ -1662,8 +1806,28 @@
     if(dateClearBtn) dateClearBtn.onclick = function(){ createDraft.date = null; buildCreatePanel(); refocusCreateTitle(); };
 
     document.getElementById("create-panel-content").onclick = function(e){
+      if(e.target.closest("#c-new-group-pill")){
+        var pillBtn = document.getElementById("c-new-group-pill");
+        pillBtn.outerHTML = '<div class="rail-add-form" style="width:100%;">'
+          + '<input type="text" id="c-new-group-name" placeholder="Category name" dir="auto">'
+          + '<div class="rail-add-form-foot"><button type="button" class="btn-ghost small" id="c-new-group-cancel">Cancel</button><button type="button" class="btn-primary" id="c-new-group-save" style="padding:5px 10px;font-size:12px;">Add</button></div>'
+          + '</div>';
+        var newInput = document.getElementById("c-new-group-name");
+        newInput.focus();
+        document.getElementById("c-new-group-cancel").onclick = function(){ buildCreatePanel(); refocusCreateTitle(); };
+        var saveNewGroup = function(){
+          var name = newInput.value.trim();
+          if(!name) return;
+          createDraft.groupId = Store.addGroup(name);
+          buildCreatePanel();
+          refocusCreateTitle();
+        };
+        document.getElementById("c-new-group-save").onclick = saveNewGroup;
+        newInput.addEventListener("keydown", function(ev){ if(ev.key==="Enter"){ ev.preventDefault(); saveNewGroup(); } });
+        return;
+      }
       var gPill = e.target.closest("[data-c-group]");
-      if(gPill){ createDraft.groupId = gPill.getAttribute("data-c-group"); buildCreatePanel(); refocusCreateTitle(); return; }
+      if(gPill){ createDraft.groupId = gPill.getAttribute("data-c-group") || null; buildCreatePanel(); refocusCreateTitle(); return; }
       var pPill = e.target.closest("[data-c-priority]");
       if(pPill){ createDraft.priority = pPill.getAttribute("data-c-priority"); buildCreatePanel(); refocusCreateTitle(); return; }
       var aPick = e.target.closest("[data-c-toggle-assignee]");
@@ -1987,6 +2151,127 @@
   function openSyncPanel(){ buildSyncPanel(); syncPanelEl.classList.add("show"); backdropEl.classList.add("show"); trapFocus(syncPanelEl); }
   function closeSyncPanel(){ syncPanelEl.classList.remove("show"); backdropEl.classList.remove("show"); releaseFocusTrap(); }
 
+  var categoriesPanelEl = document.getElementById("categories-panel-el");
+  function openCategoriesPanel(){ buildCategoriesPanel(); categoriesPanelEl.classList.add("show"); backdropEl.classList.add("show"); trapFocus(categoriesPanelEl); }
+  function closeCategoriesPanel(){ categoriesPanelEl.classList.remove("show"); backdropEl.classList.remove("show"); releaseFocusTrap(); }
+
+  function buildCategoriesPanel(){
+    var content = document.getElementById("categories-panel-content");
+    var groups = Store.getGroups();
+    var counts = {};
+    Store.getTopLevel().forEach(function(it){ if(it.groupId) counts[it.groupId]=(counts[it.groupId]||0)+1; });
+    var html = '<button class="detail-close" id="categories-close-btn">&times;</button><div style="clear:both;height:6px;"></div>';
+    html += '<h2 style="font-size:16px;margin:0 0 4px;">Manage categories</h2>';
+    html += '<div class="hint" style="margin-bottom:14px;">Drag to reorder. Click a colour swatch to recolour.</div>';
+    html += '<div id="cat-manage-list">';
+    groups.forEach(function(g){
+      var n = counts[g.id]||0;
+      html += '<div class="staff-card cat-manage-row" data-cat-row="'+g.id+'" draggable="true">'
+        + '<span class="cat-drag-handle" title="Drag to reorder">&#8942;&#8942;</span>'
+        + '<button type="button" class="cat-swatch-btn" data-cat-swatch="'+g.id+'" style="background:'+g.color+';" title="Change colour"></button>'
+        + '<span class="cat-manage-name" dir="auto">'+esc(g.name)+'</span>'
+        + '<span class="cat-manage-count">'+n+' item'+(n===1?"":"s")+'</span>'
+        + '<button type="button" class="btn-ghost small" data-cat-rename="'+g.id+'">Rename</button>'
+        + '<button type="button" class="icon-btn-sm" data-cat-delete="'+g.id+'" title="Delete">&times;</button>'
+        + '</div>';
+    });
+    html += '</div>';
+    html += '<button class="add-tile" id="cat-manage-add-btn" style="margin-top:10px;min-height:60px;">+ Add category</button>';
+    content.innerHTML = html;
+    wireCategoriesPanelEvents();
+  }
+
+  function startInlineGroupRenameInManage(groupId){
+    var row = document.querySelector('.cat-manage-row[data-cat-row="'+groupId+'"]');
+    var nameEl = row ? row.querySelector(".cat-manage-name") : null;
+    var group = Store.getGroups().filter(function(g){ return g.id===groupId; })[0];
+    if(!nameEl || !group) return;
+    var input = document.createElement("input");
+    input.type = "text"; input.className = "inline-title-edit rail-inline-rename"; input.setAttribute("dir","auto");
+    input.value = group.name;
+    input.style.flex = "1"; input.style.minWidth = "0";
+    nameEl.replaceWith(input);
+    input.focus(); input.select();
+    var committed = false;
+    function commit(){ if(committed) return; committed=true; var v=input.value.trim(); if(v) Store.updateGroup(groupId,{name:v}); renderAll(); }
+    function cancel(){ if(committed) return; committed=true; buildCategoriesPanel(); }
+    input.addEventListener("keydown", function(ev){
+      if(ev.key==="Enter"){ ev.preventDefault(); commit(); }
+      else if(ev.key==="Escape"){ ev.preventDefault(); cancel(); }
+    });
+    input.addEventListener("blur", commit);
+    input.addEventListener("click", function(ev){ ev.stopPropagation(); });
+  }
+
+  function wireCategoriesPanelEvents(){
+    document.getElementById("categories-close-btn").onclick = closeCategoriesPanel;
+    var addBtn = document.getElementById("cat-manage-add-btn");
+    if(addBtn){
+      addBtn.onclick = function(){
+        addBtn.outerHTML = '<div class="rail-add-form" style="margin-top:10px;">'
+          + '<input type="text" id="cat-manage-new-name" placeholder="Category name" dir="auto">'
+          + '<div class="rail-add-form-foot"><button class="btn-ghost small" id="cat-manage-new-cancel">Cancel</button><button class="btn-primary" id="cat-manage-new-save" style="padding:5px 10px;font-size:12px;">Add</button></div>'
+          + '</div>';
+        var newInput = document.getElementById("cat-manage-new-name");
+        newInput.focus();
+        document.getElementById("cat-manage-new-cancel").onclick = function(){ buildCategoriesPanel(); };
+        var saveNew = function(){
+          var name = newInput.value.trim();
+          if(!name) return;
+          Store.addGroup(name);
+          renderAll();
+        };
+        document.getElementById("cat-manage-new-save").onclick = saveNew;
+        newInput.addEventListener("keydown", function(ev){ if(ev.key==="Enter"){ ev.preventDefault(); saveNew(); } });
+      };
+    }
+
+    var list = document.getElementById("cat-manage-list");
+    list.querySelectorAll("[data-cat-swatch]").forEach(function(btn){
+      btn.onclick = function(){ openGroupRecolorPopover(btn, btn.getAttribute("data-cat-swatch")); };
+    });
+    list.querySelectorAll("[data-cat-rename]").forEach(function(btn){
+      btn.onclick = function(){ startInlineGroupRenameInManage(btn.getAttribute("data-cat-rename")); };
+    });
+    list.querySelectorAll("[data-cat-delete]").forEach(function(btn){
+      btn.onclick = function(){ openGroupDeleteConfirm(btn.getAttribute("data-cat-delete"), btn); };
+    });
+    list.querySelectorAll("[data-cat-row]").forEach(function(row){
+      row.addEventListener("dragstart", function(e){
+        e.dataTransfer.setData("application/x-rail-group", row.getAttribute("data-cat-row"));
+        e.dataTransfer.effectAllowed = "move";
+        row.classList.add("drag-source");
+      });
+      row.addEventListener("dragend", function(){ row.classList.remove("drag-source"); });
+    });
+    list.addEventListener("dragover", function(e){
+      var row = e.target.closest("[data-cat-row]");
+      if(!row || !dtHasType(e, "application/x-rail-group")) return;
+      e.preventDefault();
+      row.classList.add("drag-over");
+    });
+    list.addEventListener("dragleave", function(e){
+      var row = e.target.closest("[data-cat-row]");
+      if(row) row.classList.remove("drag-over");
+    });
+    list.addEventListener("drop", function(e){
+      var row = e.target.closest("[data-cat-row]");
+      if(!row || !dtHasType(e, "application/x-rail-group")) return;
+      e.preventDefault();
+      row.classList.remove("drag-over");
+      var draggedId = e.dataTransfer.getData("application/x-rail-group");
+      var targetId = row.getAttribute("data-cat-row");
+      if(!draggedId || draggedId===targetId) return;
+      var rect = row.getBoundingClientRect();
+      var after = (e.clientY - rect.top) > rect.height/2;
+      var ids = Store.getGroups().map(function(g){ return g.id; }).filter(function(id){ return id!==draggedId; });
+      var targetIdx = ids.indexOf(targetId);
+      ids.splice(after ? targetIdx+1 : targetIdx, 0, draggedId);
+      Store.reorderGroups(ids);
+      renderAll();
+    });
+  }
+
     var ImportExport = (function(){
     var STATUS_ALIASES = { "todo":"todo","to do":"todo","backlog":"todo","in progress":"in_progress","in_progress":"in_progress","done":"done","complete":"done","completed":"done" };
     var PRIORITY_ALIASES = { "medium":"medium","med":"medium","high":"high","critical":"critical","urgent":"critical" };
@@ -2267,17 +2552,147 @@
     };
   }
 
+  function openRailTabMenu(triggerEl, groupId){
+    var group = Store.getGroups().filter(function(g){ return g.id===groupId; })[0];
+    if(!group) return;
+    var html = '<div class="cselect-panel">'
+      + '<button type="button" class="cselect-opt" data-cat-action="rename">Rename</button>'
+      + '<button type="button" class="cselect-opt" data-cat-action="recolor">Change colour</button>'
+      + '<button type="button" class="cselect-opt" data-cat-action="delete" style="color:var(--danger);">Delete</button>'
+      + '</div>';
+    popoverRoot.innerHTML = html;
+    popoverRoot.classList.add("show");
+    positionPopover(triggerEl, 170);
+    openTrigger = triggerEl;
+    var menuBtn = document.querySelector('.rail-tab-menu-btn[data-rail-menu="'+groupId+'"]');
+    if(menuBtn) menuBtn.classList.add("menu-open");
+    popoverRoot.querySelector('[data-cat-action="rename"]').onclick = function(){ closePopover(); startInlineGroupRename(groupId); };
+    popoverRoot.querySelector('[data-cat-action="recolor"]').onclick = function(){ openGroupRecolorPopover(triggerEl, groupId); };
+    popoverRoot.querySelector('[data-cat-action="delete"]').onclick = function(){ closePopover(); openGroupDeleteConfirm(groupId); };
+  }
+
+  function openGroupRecolorPopover(triggerEl, groupId){
+    var html = '<div class="cselect-panel"><div class="color-swatch-grid">'
+      + PALETTE.map(function(c){ return '<button type="button" class="color-swatch-btn" data-cat-color="'+c+'" style="background:'+c+';" title="'+c+'"></button>'; }).join("")
+      + '</div></div>';
+    popoverRoot.innerHTML = html;
+    popoverRoot.classList.add("show");
+    positionPopover(triggerEl, 190);
+    openTrigger = triggerEl;
+    popoverRoot.querySelectorAll("[data-cat-color]").forEach(function(btn){
+      btn.onclick = function(){
+        Store.updateGroup(groupId, {color:btn.getAttribute("data-cat-color")});
+        closePopover();
+        renderAll();
+      };
+    });
+  }
+
+  function startInlineGroupRename(groupId){
+    var wrap = document.querySelector('.rail-tab-wrap[data-rail-wrap="'+groupId+'"]');
+    var group = Store.getGroups().filter(function(g){ return g.id===groupId; })[0];
+    if(!wrap || !group) return;
+    wrap.innerHTML = '<div class="rail-rename-row"><span class="rail-dot" style="background:'+group.color+'"></span><input type="text" class="inline-title-edit rail-inline-rename" dir="auto" value="'+esc(group.name)+'"></div>';
+    var input = wrap.querySelector("input");
+    input.focus(); input.select();
+    var committed = false;
+    function commit(){ if(committed) return; committed=true; var v=input.value.trim(); if(v) Store.updateGroup(groupId,{name:v}); renderAll(); }
+    function cancel(){ if(committed) return; committed=true; renderAll(); }
+    input.addEventListener("keydown", function(ev){
+      if(ev.key==="Enter"){ ev.preventDefault(); commit(); }
+      else if(ev.key==="Escape"){ ev.preventDefault(); cancel(); }
+    });
+    input.addEventListener("blur", commit);
+  }
+
+  function openGroupDeleteConfirm(groupId, triggerEl){
+    var group = Store.getGroups().filter(function(g){ return g.id===groupId; })[0];
+    if(!group) return;
+    var count = Store.getTopLevel().filter(function(it){ return it.groupId===groupId; }).length;
+    var others = Store.getGroups().filter(function(g){ return g.id!==groupId; });
+    if(!triggerEl){
+      var wrap = document.querySelector('.rail-tab-wrap[data-rail-wrap="'+groupId+'"]');
+      triggerEl = wrap ? wrap.querySelector(".rail-tab") : document.getElementById("rail-tabs");
+    }
+    var html = '<div class="cselect-panel" style="width:220px;">';
+    html += '<div style="padding:8px 10px 4px;font-size:12.5px;color:var(--ink);">Delete "'+esc(group.name)+'"?</div>';
+    if(count>0){
+      html += '<div style="padding:0 10px 8px;font-size:11.5px;color:var(--ink-faint);">'+count+' item'+(count===1?"":"s")+' inside. What should happen to '+(count===1?"it":"them")+'?</div>';
+      html += '<div style="padding:0 10px 8px;">';
+      if(others.length){
+        html += '<select id="cat-delete-reassign" style="width:100%;border:1px solid var(--line);border-radius:8px;padding:6px;background:var(--bg);color:var(--ink);font-size:12px;margin-bottom:6px;">';
+        html += '<option value="">Leave uncategorised</option>';
+        others.forEach(function(g){ html += '<option value="'+esc(g.id)+'">Move to '+esc(g.name)+'</option>'; });
+        html += '</select>';
+      } else {
+        html += '<div style="font-size:11.5px;color:var(--ink-faint);margin-bottom:6px;">They\'ll be left uncategorised.</div>';
+      }
+      html += '</div>';
+    }
+    html += '<div style="display:flex;gap:6px;padding:0 10px 10px;">';
+    html += '<button type="button" class="btn-ghost small" id="cat-delete-cancel" style="flex:1;justify-content:center;">Cancel</button>';
+    html += '<button type="button" class="btn-primary" id="cat-delete-confirm" style="flex:1;justify-content:center;background:var(--danger);">Delete</button>';
+    html += '</div></div>';
+    popoverRoot.innerHTML = html;
+    popoverRoot.classList.add("show");
+    positionPopover(triggerEl, 220);
+    openTrigger = triggerEl;
+    document.getElementById("cat-delete-cancel").onclick = function(){ closePopover(); };
+    document.getElementById("cat-delete-confirm").onclick = function(){
+      var sel = document.getElementById("cat-delete-reassign");
+      var reassignTo = sel ? (sel.value || null) : null;
+      var label = Store.deleteGroup(groupId, reassignTo);
+      if(state.rail===groupId) setRail("all");
+      closePopover();
+      renderAll();
+      showUndoToast(label);
+    };
+  }
+
+  function dtHasType(e, type){
+    var types = e.dataTransfer && e.dataTransfer.types;
+    if(!types) return false;
+    for(var i=0;i<types.length;i++){ if(types[i]===type) return true; }
+    return false;
+  }
+
   document.getElementById("rail-tabs").addEventListener("click", function(e){
     var addBtn = e.target.closest("#rail-add-group-btn");
     if(addBtn){ openAddGroupForm(); return; }
+    var menuBtn = e.target.closest("[data-rail-menu]");
+    if(menuBtn){ openRailTabMenu(menuBtn, menuBtn.getAttribute("data-rail-menu")); return; }
     var tab = e.target.closest("[data-rail]");
     if(tab){ setRail(tab.getAttribute("data-rail")); }
+  });
+  document.getElementById("rail-tabs").addEventListener("contextmenu", function(e){
+    var wrap = e.target.closest("[data-rail-wrap]");
+    if(!wrap) return;
+    e.preventDefault();
+    openRailTabMenu(wrap.querySelector(".rail-tab"), wrap.getAttribute("data-rail-wrap"));
+  });
+  document.getElementById("rail-tabs").addEventListener("dragstart", function(e){
+    var groupTab = e.target.closest("[data-group-drag]");
+    if(!groupTab){ e.preventDefault(); return; }
+    e.dataTransfer.setData("application/x-rail-group", groupTab.getAttribute("data-group-drag"));
+    e.dataTransfer.effectAllowed = "move";
+    var wrap = groupTab.closest(".rail-tab-wrap");
+    if(wrap) wrap.classList.add("drag-source");
+  });
+  document.getElementById("rail-tabs").addEventListener("dragend", function(e){
+    var wrap = e.target.closest(".rail-tab-wrap");
+    if(wrap) wrap.classList.remove("drag-source");
+    document.querySelectorAll(".rail-tab-wrap.drag-source").forEach(function(w){ w.classList.remove("drag-source"); });
   });
   document.getElementById("rail-tabs").addEventListener("dragover", function(e){
     var tab = e.target.closest('.rail-tab[data-rail]');
     if(!tab) return;
     var key = tab.getAttribute("data-rail");
-    if(key==="all" || key==="overview" || key==="team") return;
+    var isReorder = dtHasType(e, "application/x-rail-group");
+    if(isReorder){
+      if(key==="all" || key==="overview" || key==="team" || key==="unfiled") return;
+    } else if(key==="all" || key==="overview" || key==="team"){
+      return;
+    }
     e.preventDefault();
     tab.classList.add("drag-over");
   });
@@ -2288,18 +2703,37 @@
   document.getElementById("rail-tabs").addEventListener("drop", function(e){
     var tab = e.target.closest('.rail-tab[data-rail]');
     if(!tab) return;
-    var groupId = tab.getAttribute("data-rail");
-    if(groupId==="all" || groupId==="overview" || groupId==="team") return;
-    e.preventDefault();
+    var key = tab.getAttribute("data-rail");
     tab.classList.remove("drag-over");
+
+    if(dtHasType(e, "application/x-rail-group")){
+      if(key==="all" || key==="overview" || key==="team" || key==="unfiled") return;
+      e.preventDefault();
+      var draggedId = e.dataTransfer.getData("application/x-rail-group");
+      if(!draggedId || draggedId===key) return;
+      var wrap = tab.closest(".rail-tab-wrap");
+      var rect = (wrap||tab).getBoundingClientRect();
+      var after = (e.clientY - rect.top) > rect.height/2;
+      var ids = Store.getGroups().map(function(g){ return g.id; }).filter(function(id){ return id!==draggedId; });
+      var targetIdx = ids.indexOf(key);
+      ids.splice(after ? targetIdx+1 : targetIdx, 0, draggedId);
+      Store.reorderGroups(ids);
+      renderAll();
+      return;
+    }
+
+    if(key==="all" || key==="overview" || key==="team") return;
+    e.preventDefault();
     var itemId = e.dataTransfer.getData("text/plain");
     if(!itemId) return;
     var item = Store.getItem(itemId);
-    var group = Store.getGroups().filter(function(g){ return g.id===groupId; })[0];
-    if(!item || !group) return;
+    if(!item) return;
+    var groupId = key==="unfiled" ? null : key;
+    var group = groupId ? Store.getGroups().filter(function(g){ return g.id===groupId; })[0] : null;
+    if(groupId && !group) return;
     Store.updateItem(itemId, {groupId:groupId});
     renderAll();
-    showToast('Moved "' + (item.title||"Untitled") + '" to ' + group.name);
+    showToast('Moved "' + (item.title||"Untitled") + '" to ' + (group?group.name:"Unfiled"));
   });
 
   document.getElementById("filter-chips").addEventListener("click", function(e){
@@ -2328,6 +2762,8 @@
   function openSettingsPopover(triggerEl){
     var connected = SheetsSync.isConnected();
     var html = '<div class="settings-panel">'
+      + '<button type="button" class="settings-row" data-settings-action="categories">Manage categories</button>'
+      + '<div class="settings-sep"></div>'
       + '<button type="button" class="settings-row" data-settings-action="import">Import data...</button>'
       + '<button type="button" class="settings-row" data-settings-action="export">Export data</button>'
       + '<div class="settings-sep"></div>'
@@ -2337,6 +2773,7 @@
     popoverRoot.classList.add("show");
     positionPopover(triggerEl, 220);
     openTrigger = triggerEl;
+    popoverRoot.querySelector('[data-settings-action="categories"]').onclick = function(){ closePopover(); openCategoriesPanel(); };
     popoverRoot.querySelector('[data-settings-action="import"]').onclick = function(){ closePopover(); openImportPanel(); };
     popoverRoot.querySelector('[data-settings-action="export"]').onclick = function(){ closePopover(); ImportExport.exportXlsx(); };
     popoverRoot.querySelector('[data-settings-action="sync"]').onclick = function(){ closePopover(); openSyncPanel(); };
@@ -2413,13 +2850,14 @@
     }
   });
 
-  backdropEl.addEventListener("click", function(){ closeDetail(); closeCreatePanel(); closeSyncPanel(); closeImportPanel(); closePalette(); });
+  backdropEl.addEventListener("click", function(){ closeDetail(); closeCreatePanel(); closeSyncPanel(); closeImportPanel(); closeCategoriesPanel(); closePalette(); });
   document.addEventListener("keydown", function(e){
     if(e.key==="Escape"){
       if(panelEl.classList.contains("show")) closeDetail();
       if(document.getElementById("create-panel-el").classList.contains("show")) closeCreatePanel();
       if(syncPanelEl.classList.contains("show")) closeSyncPanel();
       if(importPanelEl.classList.contains("show")) closeImportPanel();
+      if(categoriesPanelEl.classList.contains("show")) closeCategoriesPanel();
       if(Object.keys(state.selected).length) clearSelection();
     }
   });
