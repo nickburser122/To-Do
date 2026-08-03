@@ -4,8 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Gov To Do</title>
-<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
 <style>
   :root{
     --bg: #F7F5F1;
@@ -176,7 +174,8 @@
   .section-group{ margin-bottom:22px; }
   .section-header{ display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:var(--ink-soft); margin:0 0 8px 4px; }
   .section-count{ color:var(--ink-faint); font-weight:500; }
-  .row-card{ background:var(--bg-raised); border-radius:var(--radius); box-shadow:var(--shadow-sm); overflow:hidden; }
+  .row-card{ background:var(--bg-raised); border-radius:var(--radius); box-shadow:var(--shadow-sm); overflow:hidden; contain:layout style paint; }
+  .row-wrap{ content-visibility:auto; contain-intrinsic-size:0 46px; }
   .row-wrap:last-child > .row{ border-bottom:none; }
   .row{ display:flex; align-items:center; gap:10px; padding:12px 16px; min-height:46px; cursor:pointer; border-bottom:1px solid var(--hairline); transition:background .12s var(--ease-out); }
   .row:hover{ background:var(--surface-2); --roundel-ring:var(--surface-2); }
@@ -506,6 +505,28 @@
 (function(){
   "use strict";
 
+    var CHARTJS_URL = "https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js";
+  var XLSX_URL = "https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js";
+  var scriptLoadPromises = {};
+  function loadScriptOnce(url){
+    if(scriptLoadPromises[url]) return scriptLoadPromises[url];
+    scriptLoadPromises[url] = new Promise(function(resolve, reject){
+      var s = document.createElement("script");
+      s.src = url;
+      s.onload = function(){ resolve(); };
+      s.onerror = function(){
+        delete scriptLoadPromises[url];
+        var err = new Error("Failed to load script: "+url);
+        err.__scriptLoadError = true;
+        reject(err);
+      };
+      document.head.appendChild(s);
+    });
+    return scriptLoadPromises[url];
+  }
+  function ensureChartJs(){ return (typeof Chart!=="undefined") ? Promise.resolve() : loadScriptOnce(CHARTJS_URL); }
+  function ensureXlsx(){ return (typeof XLSX!=="undefined") ? Promise.resolve() : loadScriptOnce(XLSX_URL); }
+
     var STORAGE_KEY = "governance_tracker_v3";
   var SYNC_CONFIG_KEY = "governance_tracker_sync_cfg_v1";
   var BACKUP_KEY = "governance_tracker_v3_pre_replace_backup";
@@ -515,6 +536,7 @@
   var STATUSES = ["todo","in_progress","done"];
   var STATUS_LABEL = { todo:"To do", in_progress:"In progress", done:"Done" };
   var PALETTE = ["#9A5B4C","#5B7C99","#5E7D63","#6B4A5E","#4A6B8A","#7A5C3E","#5C7A6B"];
+  var EMPTY_ARR = [];
   var CHEVRON_SVG = '<svg class="cselect-chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>';
 
     function seedData(){
@@ -578,7 +600,9 @@
       }
     }
     var persistFailing = false;
-    function persist(){
+    var persistWriteTimer = null;
+    function writePersistNow(){
+      if(persistWriteTimer){ clearTimeout(persistWriteTimer); persistWriteTimer=null; }
       try{
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
         persistFailing = false;
@@ -593,14 +617,55 @@
         }
       }
     }
+    function persist(){
+      indexVersion++;
+      if(persistWriteTimer) clearTimeout(persistWriteTimer);
+      persistWriteTimer = setTimeout(writePersistNow, 300);
+    }
+    if(typeof window!=="undefined"){
+      window.addEventListener("pagehide", writePersistNow);
+      document.addEventListener("visibilitychange", function(){ if(document.visibilityState==="hidden") writePersistNow(); });
+    }
     function pushUndo(label){
-      undoStack.push({ label:label, data: JSON.parse(JSON.stringify(data)) });
+      undoStack.push({ label:label, type:"snapshot", data: JSON.parse(JSON.stringify(data)) });
       if(undoStack.length>30) undoStack.shift();
+    }
+    function pushUndoInverse(label, applyFn){
+      undoStack.push({ label:label, type:"inverse", apply:applyFn });
+      if(undoStack.length>30) undoStack.shift();
+    }
+
+    var indexVersion = 0;
+    var indexBuiltAt = -1;
+    var idxItemById, idxChildrenByParent, idxTopLevel, idxStaffById, idxGroupById, idxGroupsSorted;
+    function ensureIndex(){
+      if(indexBuiltAt===indexVersion) return;
+      idxItemById = new Map();
+      idxChildrenByParent = new Map();
+      idxTopLevel = [];
+      data.items.forEach(function(it){
+        idxItemById.set(it.id, it);
+        if(it.parentId){
+          var list = idxChildrenByParent.get(it.parentId);
+          if(!list){ list=[]; idxChildrenByParent.set(it.parentId, list); }
+          list.push(it);
+        } else {
+          idxTopLevel.push(it);
+        }
+      });
+      idxStaffById = new Map();
+      data.staff.forEach(function(s){ idxStaffById.set(s.id, s); });
+      idxGroupById = new Map();
+      data.groups.forEach(function(g){ idxGroupById.set(g.id, g); });
+      idxGroupsSorted = data.groups.slice().sort(function(a,b){ return (a.order||0)-(b.order||0); });
+      indexBuiltAt = indexVersion;
     }
 
     var api = {
       init: function(){ load(); },
-      getGroups: function(){ return data.groups.slice().sort(function(a,b){ return (a.order||0)-(b.order||0); }); },
+      getVersion: function(){ return indexVersion; },
+      getGroups: function(){ ensureIndex(); return idxGroupsSorted; },
+      getGroupById: function(id){ ensureIndex(); return idxGroupById.get(id) || null; },
       addGroup: function(name){
         var id="g"+(data.nextGroupId++);
         var maxOrder = data.groups.reduce(function(m,g){ return Math.max(m, g.order||0); }, -1);
@@ -619,7 +684,18 @@
       deleteGroup: function(id, reassignToId){
         var group = data.groups.filter(function(g){ return g.id===id; })[0];
         var label = group ? ('Deleted category "' + group.name + '"') : "Deleted category";
-        pushUndo(label);
+        var groupIdx = -1;
+        data.groups.forEach(function(g, idx){ if(g.id===id) groupIdx = idx; });
+        var groupCopy = group ? JSON.parse(JSON.stringify(group)) : null;
+        var affected = [];
+        data.items.forEach(function(it){ if(it.groupId===id) affected.push(it.id); });
+        pushUndoInverse(label, function(){
+          if(groupCopy){ data.groups.splice(groupIdx>=0?groupIdx:data.groups.length, 0, groupCopy); }
+          affected.forEach(function(itemId){
+            var it = data.items.filter(function(x){ return x.id===itemId; })[0];
+            if(it) it.groupId = id;
+          });
+        });
         data.groups = data.groups.filter(function(g){ return g.id!==id; });
         data.items.forEach(function(it){ if(it.groupId===id) it.groupId = reassignToId || null; });
         persist();
@@ -635,7 +711,7 @@
       },
 
       getStaff: function(){ return data.staff; },
-      getStaffById: function(id){ for(var i=0;i<data.staff.length;i++){ if(data.staff[i].id===id) return data.staff[i]; } return null; },
+      getStaffById: function(id){ ensureIndex(); return idxStaffById.get(id) || null; },
       addStaff: function(name, dept){
         var id="s"+(data.nextStaffId++);
         var color = PALETTE[data.staff.length % PALETTE.length];
@@ -645,7 +721,21 @@
       },
       deleteStaff: function(id){
         var person = this.getStaffById(id);
-        pushUndo("Removed " + (person?person.name:"person"));
+        var label = "Removed " + (person?person.name:"person");
+        var staffIdx = -1;
+        data.staff.forEach(function(s, idx){ if(s.id===id) staffIdx = idx; });
+        var personCopy = person ? JSON.parse(JSON.stringify(person)) : null;
+        var affected = [];
+        data.items.forEach(function(it){
+          it.assignees.forEach(function(a){ if(a.staffId===id) affected.push({itemId:it.id, isLead:a.isLead}); });
+        });
+        pushUndoInverse(label, function(){
+          if(personCopy){ data.staff.splice(staffIdx>=0?staffIdx:data.staff.length, 0, personCopy); }
+          affected.forEach(function(a){
+            var it = data.items.filter(function(x){ return x.id===a.itemId; })[0];
+            if(it) it.assignees.push({staffId:id, isLead:a.isLead});
+          });
+        });
         data.staff = data.staff.filter(function(s){ return s.id!==id; });
         data.items.forEach(function(it){ it.assignees = it.assignees.filter(function(a){ return a.staffId!==id; }); });
         persist();
@@ -653,9 +743,9 @@
       },
 
       getAllItems: function(){ return data.items; },
-      getItem: function(id){ for(var i=0;i<data.items.length;i++){ if(data.items[i].id===id) return data.items[i]; } return null; },
-      getChildren: function(id){ return data.items.filter(function(it){ return it.parentId===id; }); },
-      getTopLevel: function(){ return data.items.filter(function(it){ return !it.parentId; }); },
+      getItem: function(id){ ensureIndex(); return idxItemById.get(id) || null; },
+      getChildren: function(id){ ensureIndex(); return idxChildrenByParent.get(id) || EMPTY_ARR; },
+      getTopLevel: function(){ ensureIndex(); return idxTopLevel; },
 
       createItem: function(patch){
         var item = Object.assign({
@@ -668,7 +758,11 @@
       deleteItem: function(id){
         var item = this.getItem(id);
         var label = item ? ('Deleted "' + (item.title||"Untitled") + '"') : "Deleted";
-        pushUndo(label);
+        var removed = [];
+        data.items.forEach(function(it, idx){ if(it.id===id || it.parentId===id) removed.push({idx:idx, item:JSON.parse(JSON.stringify(it))}); });
+        pushUndoInverse(label, function(){
+          removed.forEach(function(r){ data.items.splice(r.idx, 0, r.item); });
+        });
         data.items = data.items.filter(function(it){ return it.id!==id && it.parentId!==id; });
         persist();
         return label;
@@ -713,7 +807,9 @@
       _snapshot: function(){ return data; },
       undo: function(){
         if(undoStack.length===0) return false;
-        data = undoStack.pop().data;
+        var entry = undoStack.pop();
+        if(entry.type==="inverse"){ entry.apply(); }
+        else { data = entry.data; }
         persist();
         return true;
       },
@@ -728,6 +824,15 @@
       return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c];
     });
   }
+  function debounce(fn, wait){
+    var t = null;
+    return function(){
+      var args = arguments, ctx = this;
+      if(t) clearTimeout(t);
+      t = setTimeout(function(){ t=null; fn.apply(ctx, args); }, wait);
+    };
+  }
+  var debouncedRenderAll = debounce(function(){ renderAll(); }, 120);
   function fmtDate(iso){
     if(!iso) return "";
     var d = new Date(iso + "T00:00:00");
@@ -742,13 +847,23 @@
   }
   function todayISO(){ return localISO(new Date()); }
 
+  var effStatusCache = null;
+  var effStatusCacheVersion = -1;
   function effectiveStatus(item){
+    var v = Store.getVersion();
+    if(effStatusCacheVersion!==v){ effStatusCache = new Map(); effStatusCacheVersion = v; }
+    if(effStatusCache.has(item.id)) return effStatusCache.get(item.id);
     var kids = Store.getChildren(item.id);
-    if(kids.length===0) return item.status;
-    var done = kids.filter(function(k){ return k.status==="done"; }).length;
-    if(done===kids.length) return "done";
-    if(done>0 || kids.some(function(k){ return k.status==="in_progress"; })) return "in_progress";
-    return "todo";
+    var result;
+    if(kids.length===0){ result = item.status; }
+    else {
+      var done = kids.filter(function(k){ return k.status==="done"; }).length;
+      if(done===kids.length) result = "done";
+      else if(done>0 || kids.some(function(k){ return k.status==="in_progress"; })) result = "in_progress";
+      else result = "todo";
+    }
+    effStatusCache.set(item.id, result);
+    return result;
   }
   function isOverdue(item){
     if(!item.date) return false;
@@ -921,6 +1036,64 @@
     return fmtDate(item.date);
   }
 
+  var rowNodeCache = new Map();
+  var sectionNodeCache = new Map();
+
+  function rowSignature(item, showGroupTag, groupsById){
+    var kids = Store.getChildren(item.id);
+    var eff = effectiveStatus(item);
+    var overdue = isOverdue(item);
+    var searchForcesExpand = !!state.searchQuery && !matchesSearch(item, state.searchQuery) && kids.some(function(k){ return matchesSearch(k, state.searchQuery); });
+    var expanded = !!state.expanded[item.id] || searchForcesExpand;
+    var assigneeSig = item.assignees.map(function(a){ var s=Store.getStaffById(a.staffId); return a.staffId+":"+(s?s.name+s.color:""); }).join(",");
+    var kidsSig = kids.map(function(k){
+      var kOv = isOverdue(k);
+      return [k.id,k.title,k.status,k.priority,k.date,kOv?1:0,k.assignees.map(function(a){return a.staffId;}).join(",")].join("~");
+    }).join(";");
+    return [
+      todayISO(), item.title, item.priority, item.date, eff, overdue?1:0, expanded?1:0,
+      state.selected[item.id]?1:0, showGroupTag?(groupsById[item.groupId]||"Unfiled"):"",
+      assigneeSig, kidsSig
+    ].join("§");
+  }
+
+  function getOrCreateRowNode(item, showGroupTag, groupsById){
+    var sig = rowSignature(item, showGroupTag, groupsById);
+    var cached = rowNodeCache.get(item.id);
+    if(cached && cached.sig===sig) return cached.el;
+    var tmp = document.createElement("div");
+    tmp.innerHTML = rowGroupHtml(item, showGroupTag, groupsById);
+    var el = tmp.firstElementChild;
+    rowNodeCache.set(item.id, {el:el, sig:sig});
+    return el;
+  }
+
+  function getOrCreateSectionContainer(key, wantsHeader){
+    var cached = sectionNodeCache.get(key);
+    if(cached) return cached;
+    var cardEl = document.createElement("div"); cardEl.className="row-card"; cardEl.setAttribute("role","list");
+    var outerEl = cardEl, headerEl = null;
+    if(wantsHeader){
+      outerEl = document.createElement("div"); outerEl.className="section-group";
+      headerEl = document.createElement("div"); headerEl.className="section-header";
+      outerEl.appendChild(headerEl); outerEl.appendChild(cardEl);
+    }
+    cached = {outerEl:outerEl, headerEl:headerEl, cardEl:cardEl};
+    sectionNodeCache.set(key, cached);
+    return cached;
+  }
+
+  function reconcileRows(container, items, showGroupTag, groupsById, liveIds){
+    var idx = 0;
+    items.forEach(function(item){
+      liveIds.add(item.id);
+      var el = getOrCreateRowNode(item, showGroupTag, groupsById);
+      if(container.children[idx] !== el) container.insertBefore(el, container.children[idx] || null);
+      idx++;
+    });
+    while(container.children.length > idx) container.removeChild(container.lastChild);
+  }
+
   function renderList(){
     var wrap = document.getElementById("list-wrap");
     var groupsById = {}; Store.getGroups().forEach(function(g){ groupsById[g.id]=g.name; });
@@ -934,26 +1107,42 @@
       return true;
     });
 
-    if(items.length===0){ wrap.innerHTML = '<div class="empty-col" style="padding:40px 20px;">Nothing here yet</div>'; return; }
+    if(items.length===0){
+      rowNodeCache.clear(); sectionNodeCache.clear();
+      wrap.innerHTML = '<div class="empty-col" style="padding:40px 20px;">Nothing here yet</div>';
+      return;
+    }
 
-    var html = "";
+    var liveIds = new Set();
+    var liveSectionKeys = [];
+
     if(state.tableFilter==="all"){
       var buckets = { overdue:[], today:[], tomorrow:[], week:[], later:[], nodate:[], done:[] };
       items.forEach(function(it){ buckets[dateSection(it)].push(it); });
       var order = [["overdue","Overdue"],["today","Today"],["tomorrow","Tomorrow"],["week","This week"],["later","Later"],["nodate","No date"],["done","Done"]];
+      var idx = 0;
       order.forEach(function(pair){
         var list = buckets[pair[0]];
         if(!list.length) return;
-        html += '<div class="section-group"><div class="section-header">'+pair[1]+' <span class="section-count">'+list.length+'</span></div><div class="row-card" role="list" aria-label="'+pair[1]+'">';
-        list.forEach(function(it){ html += rowGroupHtml(it, showGroupTag, groupsById); });
-        html += '</div></div>';
+        liveSectionKeys.push(pair[0]);
+        var sec = getOrCreateSectionContainer(pair[0], true);
+        sec.headerEl.innerHTML = pair[1] + ' <span class="section-count">'+list.length+'</span>';
+        sec.cardEl.setAttribute("aria-label", pair[1]);
+        if(wrap.children[idx] !== sec.outerEl) wrap.insertBefore(sec.outerEl, wrap.children[idx] || null);
+        idx++;
+        reconcileRows(sec.cardEl, list, showGroupTag, groupsById, liveIds);
       });
+      while(wrap.children.length > idx) wrap.removeChild(wrap.lastChild);
     } else {
-      html += '<div class="row-card" role="list">';
-      items.forEach(function(it){ html += rowGroupHtml(it, showGroupTag, groupsById); });
-      html += '</div>';
+      liveSectionKeys.push("_flat");
+      var sec2 = getOrCreateSectionContainer("_flat", false);
+      if(wrap.children[0] !== sec2.outerEl) wrap.insertBefore(sec2.outerEl, wrap.children[0] || null);
+      while(wrap.children.length > 1) wrap.removeChild(wrap.lastChild);
+      reconcileRows(sec2.cardEl, items, showGroupTag, groupsById, liveIds);
     }
-    wrap.innerHTML = html;
+
+    sectionNodeCache.forEach(function(v, key){ if(liveSectionKeys.indexOf(key)===-1) sectionNodeCache.delete(key); });
+    rowNodeCache.forEach(function(v, id){ if(!liveIds.has(id)) rowNodeCache.delete(id); });
   }
 
   function priorityPillHtml(priority){
@@ -1172,6 +1361,22 @@
 
     var chartInstances = {};
   function destroyChart(key){ if(chartInstances[key]){ chartInstances[key].destroy(); delete chartInstances[key]; } }
+  function updateOrCreateChart(key, canvasId, type, data, options, plugins){
+    var existing = chartInstances[key];
+    if(existing){
+      existing.data.labels = data.labels;
+      existing.data.datasets = data.datasets;
+      existing.update("none");
+      return existing;
+    }
+    var chart = new Chart(document.getElementById(canvasId), { type:type, data:data, options:options, plugins:plugins });
+    chartInstances[key] = chart;
+    return chart;
+  }
+  var CHART_GRID_HTML = '<div class="chart-card"><h3>Work by group</h3><div class="chart-card-body"><canvas id="chart-group"></canvas></div></div>'
+    + '<div class="chart-card"><h3>Work by priority</h3><div class="chart-card-body"><canvas id="chart-priority"></canvas></div></div>'
+    + '<div class="chart-card"><h3>Work by status</h3><div class="chart-card-body"><canvas id="chart-status"></canvas></div></div>'
+    + '<div class="chart-card wide"><h3>Open work by person (overdue highlighted)</h3><div class="chart-card-body"><canvas id="chart-staff"></canvas></div></div>';
 
   function chartFont(){ return getComputedStyle(document.body).fontFamily; }
   function cssVar(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
@@ -1212,38 +1417,39 @@
 
   function renderDataOverview(){
     var grid = document.querySelector("#pane-overview .chart-grid");
-    if(typeof Chart==="undefined"){
+    ensureChartJs().then(function(){
+      renderDataOverviewNow();
+    }).catch(function(){
+      chartInstances = {};
       grid.innerHTML = '<div class="empty-col" style="grid-column:1/-1;padding:32px;">Charts need Chart.js to load from the CDN — check your internet connection and reopen this tab.</div>';
-      return;
+    });
+  }
+  function renderDataOverviewNow(){
+    var grid = document.querySelector("#pane-overview .chart-grid");
+    if(!document.getElementById("chart-group")){
+      grid.innerHTML = CHART_GRID_HTML;
+      chartInstances = {};
     }
     var top = Store.getTopLevel();
     var groups = Store.getGroups();
 
-    destroyChart("group");
-    chartInstances.group = new Chart(document.getElementById("chart-group"), {
-      type:"bar",
-      data:{ labels: groups.map(function(g){ return g.name; }), datasets:[{ data: groups.map(function(g){ return top.filter(function(it){ return it.groupId===g.id; }).length; }), backgroundColor: groups.map(function(g){ return g.color; }), borderRadius:8, borderSkipped:false }] },
-      options: baseChartOptions()
-    });
+    updateOrCreateChart("group", "chart-group", "bar", {
+      labels: groups.map(function(g){ return g.name; }),
+      datasets:[{ data: groups.map(function(g){ return top.filter(function(it){ return it.groupId===g.id; }).length; }), backgroundColor: groups.map(function(g){ return g.color; }), borderRadius:8, borderSkipped:false }]
+    }, baseChartOptions());
 
-    destroyChart("priority");
-    chartInstances.priority = new Chart(document.getElementById("chart-priority"), {
-      type:"bar",
-      data:{ labels:["Medium","High","Critical"], datasets:[{ data: PRIORITIES.map(function(p){ return top.filter(function(it){ return it.priority===p; }).length; }), backgroundColor:[cssVar("--ink-faint"),cssVar("--warn"),cssVar("--danger")], borderRadius:8, borderSkipped:false }] },
-      options: baseChartOptions()
-    });
+    updateOrCreateChart("priority", "chart-priority", "bar", {
+      labels:["Medium","High","Critical"],
+      datasets:[{ data: PRIORITIES.map(function(p){ return top.filter(function(it){ return it.priority===p; }).length; }), backgroundColor:[cssVar("--ink-faint"),cssVar("--warn"),cssVar("--danger")], borderRadius:8, borderSkipped:false }]
+    }, baseChartOptions());
 
-    destroyChart("status");
     var statusData = STATUSES.map(function(s){ return top.filter(function(it){ return effectiveStatus(it)===s; }).length; });
-    var statusChart = new Chart(document.getElementById("chart-status"), {
-      type:"doughnut",
-      data:{ labels:["To do","In progress","Done"], datasets:[{ data: statusData, backgroundColor:[cssVar("--ink-faint"),cssVar("--warn"),cssVar("--ok")], borderWidth:0 }] },
-      options:{ responsive:true, maintainAspectRatio:false, cutout:"72%", font:{family:chartFont()}, plugins:{ legend:{ display:true, position:"bottom", labels:{font:{family:chartFont(),size:12}} }, tooltip:chartTooltip() } },
-      plugins:[centerTotalPlugin]
-    });
+    var statusChart = updateOrCreateChart("status", "chart-status", "doughnut", {
+      labels:["To do","In progress","Done"],
+      datasets:[{ data: statusData, backgroundColor:[cssVar("--ink-faint"),cssVar("--warn"),cssVar("--ok")], borderWidth:0 }]
+    }, { responsive:true, maintainAspectRatio:false, cutout:"72%", font:{family:chartFont()}, plugins:{ legend:{ display:true, position:"bottom", labels:{font:{family:chartFont(),size:12}} }, tooltip:chartTooltip() } }, [centerTotalPlugin]);
     statusChart.config._total = top.length;
-    statusChart.update();
-    chartInstances.status = statusChart;
+    statusChart.update("none");
 
     var staff = Store.getStaff();
     var allItems = Store.getAllItems();
@@ -1254,31 +1460,50 @@
       var od = open.filter(isOverdue).length;
       onTrack.push(open.length-od); overdueCounts.push(od);
     });
-    destroyChart("staff");
     if(staff.length>0){
-      chartInstances.staff = new Chart(document.getElementById("chart-staff"), {
-        type:"bar",
-        data:{ labels: staff.map(function(p){ return p.name; }), datasets:[
+      updateOrCreateChart("staff", "chart-staff", "bar", {
+        labels: staff.map(function(p){ return p.name; }),
+        datasets:[
           { label:"On track", data:onTrack, backgroundColor:cssVar("--ok"), borderRadius:8, borderSkipped:false },
           { label:"Overdue", data:overdueCounts, backgroundColor:cssVar("--danger"), borderRadius:8, borderSkipped:false }
-        ]},
-        options:{ responsive:true, maintainAspectRatio:false, indexAxis:"y", font:{family:chartFont()}, plugins:{ legend:{ display:true, position:"bottom", labels:{font:{family:chartFont(),size:12}} }, tooltip:chartTooltip() },
-          scales:{ x:{ stacked:true, beginAtZero:true, ticks:{precision:0,font:{family:chartFont()}}, grid:{color:gridColor()}, border:{display:false} }, y:{ stacked:true, grid:{display:false}, border:{display:false}, ticks:{font:{family:chartFont()}} } }
-        }
+        ]
+      }, {
+        responsive:true, maintainAspectRatio:false, indexAxis:"y", font:{family:chartFont()},
+        plugins:{ legend:{ display:true, position:"bottom", labels:{font:{family:chartFont(),size:12}} }, tooltip:chartTooltip() },
+        scales:{ x:{ stacked:true, beginAtZero:true, ticks:{precision:0,font:{family:chartFont()}}, grid:{color:gridColor()}, border:{display:false} }, y:{ stacked:true, grid:{display:false}, border:{display:false}, ticks:{font:{family:chartFont()}} } }
       });
+    } else {
+      destroyChart("staff");
     }
   }
 
-  function renderAll(){
-    renderStats();
-    renderRail();
-    if(state.rail!=="overview" && state.rail!=="team") renderList();
-    if(state.rail==="team") renderStaff();
-    if(state.rail==="overview") renderDataOverview();
+  var dirty = { rail:false, list:false, stats:false, charts:false };
+  var flushScheduled = false;
+  function markDirty(section){
+    if(section==="all"){ dirty.rail=dirty.list=dirty.stats=dirty.charts=true; }
+    else if(Object.prototype.hasOwnProperty.call(dirty, section)){ dirty[section]=true; }
+    if(!flushScheduled){
+      flushScheduled = true;
+      requestAnimationFrame(flushDirty);
+    }
+  }
+  function flushDirty(){
+    flushScheduled = false;
+    var d = dirty;
+    dirty = { rail:false, list:false, stats:false, charts:false };
+    if(d.stats) renderStats();
+    if(d.rail) renderRail();
+    if(d.list){
+      if(state.rail==="team") renderStaff();
+      else if(state.rail!=="overview") renderList();
+    }
+    if(d.charts && state.rail==="overview") renderDataOverview();
     renderSyncBadge();
     if(categoriesPanelEl && categoriesPanelEl.classList.contains("show")) buildCategoriesPanel();
   }
+  function renderAll(){ markDirty("all"); }
   window.renderAll = renderAll;
+  window.markDirty = markDirty;
   window.showToast = showToast;
 
     var panelEl = document.getElementById("detail-panel");
@@ -1370,7 +1595,7 @@
     var parentLink = document.getElementById("parent-link");
     if(parentLink) parentLink.onclick = function(){ openDetail(item.parentId); };
 
-    document.getElementById("f-title").addEventListener("input", function(e){ Store.updateItem(item.id,{title:e.target.value}); renderAll(); });
+    document.getElementById("f-title").addEventListener("input", function(e){ Store.updateItem(item.id,{title:e.target.value}); debouncedRenderAll(); });
     document.getElementById("f-notes").addEventListener("input", function(e){ Store.updateItem(item.id,{notes:e.target.value}); });
 
     var addBranchBtn = document.getElementById("add-branch-btn");
@@ -1384,7 +1609,7 @@
     }
     Array.prototype.forEach.call(document.querySelectorAll(".branch-edit-row"), function(row){
       var bid = row.getAttribute("data-branch-id");
-      row.querySelector('[data-b-field="title"]').addEventListener("input", function(e){ Store.updateItem(bid,{title:e.target.value}); renderAll(); });
+      row.querySelector('[data-b-field="title"]').addEventListener("input", function(e){ Store.updateItem(bid,{title:e.target.value}); debouncedRenderAll(); });
       var rm = row.querySelector("[data-remove-branch]");
       if(rm) rm.onclick = function(){ var label=Store.deleteItem(bid); buildPanel(item.id); renderAll(); showUndoToast(label); };
     });
@@ -2421,11 +2646,14 @@
     }
 
     function writeWorkbook(rows, sheetName, filename){
-      if(typeof XLSX==="undefined"){ showToast("Couldn't reach the spreadsheet library — check your connection and try again.", "err"); return; }
-      var wb = XLSX.utils.book_new();
-      var ws = XLSX.utils.aoa_to_sheet(rows);
-      XLSX.utils.book_append_sheet(wb, ws, sheetName);
-      XLSX.writeFile(wb, filename);
+      ensureXlsx().then(function(){
+        var wb = XLSX.utils.book_new();
+        var ws = XLSX.utils.aoa_to_sheet(rows);
+        XLSX.utils.book_append_sheet(wb, ws, sheetName);
+        XLSX.writeFile(wb, filename);
+      }).catch(function(){
+        showToast("Couldn't reach the spreadsheet library — check your connection and try again.", "err");
+      });
     }
 
     function exportXlsx(){ writeWorkbook(exportRows(), "Items", "gov-to-do-export.xlsx"); }
@@ -2439,8 +2667,9 @@
     }
 
     function parseFileRaw(file, cb){
-      if(typeof XLSX==="undefined"){ cb(new Error("Couldn't reach the spreadsheet library — check your connection and try again.")); return; }
-      file.arrayBuffer().then(function(buf){
+      ensureXlsx().then(function(){
+        return file.arrayBuffer();
+      }).then(function(buf){
         try{
           var wb = XLSX.read(new Uint8Array(buf), {type:"array"});
           var sheetName = wb.SheetNames.filter(function(n){ return /items|tasks|people|staff/i.test(n); })[0] || wb.SheetNames[0];
@@ -2448,7 +2677,10 @@
           var aoa = XLSX.utils.sheet_to_json(ws, {header:1, raw:false});
           cb(null, aoa);
         }catch(err){ cb(err); }
-      }).catch(function(err){ cb(err); });
+      }).catch(function(err){
+        if(err && err.__scriptLoadError){ cb(new Error("Couldn't reach the spreadsheet library — check your connection and try again.")); }
+        else { cb(err); }
+      });
     }
 
     return {
@@ -2746,7 +2978,7 @@
     renderList();
   });
 
-  document.getElementById("search").addEventListener("input", function(e){ state.searchQuery = e.target.value; renderAll(); });
+  document.getElementById("search").addEventListener("input", function(e){ state.searchQuery = e.target.value; debouncedRenderAll(); });
 
   document.getElementById("quick-add-input").addEventListener("keydown", function(e){
     if(e.key!=="Enter") return;
