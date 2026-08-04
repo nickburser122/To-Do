@@ -161,6 +161,7 @@
   .stat-pill .n{ font-size:19px; font-weight:600; }
   .stat-pill .l{ font-size:11.5px; color:var(--ink-faint); }
   .stat-pill.warn .n{ color:var(--danger); }
+  .stat-pill.positive .n{ color:var(--ok); display:inline-flex; align-items:center; gap:4px; }
 
     .filter-chips{ display:flex; gap:6px; margin:0 0 14px; flex-wrap:wrap; }
   .chip{ border:1px solid var(--line); background:var(--bg-raised); border-radius:20px; padding:6px 13px; font-size:12.5px; font-weight:500; color:var(--ink-soft); }
@@ -172,12 +173,17 @@
   #quick-add-input{ border:none; background:transparent; flex:1; font-size:13px; padding:2px 0; }
   #quick-add-input::placeholder{ color:var(--ink-faint); }
   .section-group{ margin-bottom:22px; }
-  .section-header{ display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:var(--ink-soft); margin:0 0 8px 4px; }
+  .section-header{ display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:var(--ink-soft); margin:0 0 8px 4px; position:sticky; top:0; z-index:5; background:var(--bg); padding:8px 0 8px 4px; margin-top:-8px; }
   .section-count{ color:var(--ink-faint); font-weight:500; }
-  .row-card{ background:var(--bg-raised); border-radius:var(--radius); box-shadow:var(--shadow-sm); overflow:hidden; contain:layout style paint; }
+  .row-card{ background:var(--bg-raised); border-radius:var(--radius); box-shadow:var(--shadow-sm); overflow:hidden; contain:layout style; }
   .row-wrap{ content-visibility:auto; contain-intrinsic-size:0 46px; }
   .row-wrap:last-child > .row{ border-bottom:none; }
   .row{ display:flex; align-items:center; gap:10px; padding:12px 16px; min-height:46px; cursor:pointer; border-bottom:1px solid var(--hairline); transition:background .12s var(--ease-out); }
+  [data-density="compact"] .row{ padding:5px 16px; min-height:32px; }
+  [data-density="compact"] .row-wrap{ contain-intrinsic-size:0 33px; }
+  [data-density="compact"] .row-title{ font-size:12.5px; }
+  [data-density="compact"] .section-group{ margin-bottom:12px; }
+  [data-density="compact"] .roundel{ transform:scale(0.88); }
   .row:hover{ background:var(--surface-2); --roundel-ring:var(--surface-2); }
   .row.selected{ background:var(--accent-soft); --roundel-ring:var(--accent-soft); }
   .rail-tab.drag-over{ box-shadow:0 0 0 2px var(--accent) inset; }
@@ -239,6 +245,10 @@
   .tag-done{ background:var(--ok-soft); color:var(--ok); }
   .tag-group{ background:var(--accent-soft); color:var(--accent-ink); }
   .empty-col{ font-size:13px; color:var(--ink-faint); text-align:center; }
+  .empty-col-first-run{ padding:56px 20px; }
+  .empty-col-title{ font-size:15px; font-weight:600; color:var(--ink); margin-bottom:6px; }
+  .empty-col-sub{ font-size:13px; color:var(--ink-faint); margin:0 auto 18px; max-width:360px; }
+  .empty-col-first-run .btn-primary{ margin:0 auto; }
 
     .chart-grid{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
   .chart-card{ background:var(--bg-raised); border:1px solid var(--line); border-radius:var(--radius); padding:16px; }
@@ -429,6 +439,31 @@
     .btn-ghost.small, .theme-toggle-btn, #settings-btn{ min-height:44px; }
     .staff-remove{ min-width:44px; min-height:44px; }
   }
+
+  @media print{
+    :root{
+      --bg:#ffffff !important; --bg-raised:#ffffff !important; --surface-2:#f7f6f3 !important; --surface-sunken:#f0eee9 !important;
+      --ink:#000000 !important; --ink-soft:#3a3733 !important; --ink-faint:#5a5650 !important;
+      --hairline:#d8d5d0 !important; --hairline-strong:#c3bfb8 !important;
+      --accent:#9A5B4C !important; --accent-ink:#844B3E !important; --accent-soft:#F4EAE5 !important;
+      --brass:#5B7C99 !important; --brass-ink:#3F5A73 !important; --brass-soft:#E7EEF3 !important;
+      --danger:#AF4A42 !important; --danger-soft:#F8E9E7 !important; --warn:#5B7C99 !important; --warn-soft:#E7EEF3 !important;
+      --ok:#5E7D63 !important; --ok-soft:#E9F0EA !important;
+    }
+    *{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    .rail, .topbar-actions, .filter-chips, .quick-add-row, .bulk-bar, .backdrop,
+    .detail-panel, .palette-modal, #popover-root, .toast, .disclose-btn, .rail-tab-menu-btn,
+    .staff-remove, .add-tile, .checkbox::before, .disclose-btn::before{ display:none !important; }
+    .shell{ display:block; }
+    .main-col{ padding:0; }
+    .row-wrap{ content-visibility:visible !important; }
+    .children-wrap{ display:block !important; }
+    .children-wrap-inner{ overflow:visible !important; }
+    .row-card{ box-shadow:none; border:1px solid var(--hairline-strong); contain:none; }
+    .row{ break-inside:avoid; }
+    .section-header{ position:static; }
+    .stat-pill{ box-shadow:none; border:1px solid var(--hairline-strong); break-inside:avoid; }
+  }
 </style>
 </head>
 <body>
@@ -449,6 +484,7 @@
         <input id="search" type="text" placeholder="Search...">
       </div>
       <div class="topbar-actions">
+        <button class="btn-ghost small" id="density-toggle-btn" title="Density"></button>
         <button class="btn-ghost small" id="theme-toggle-btn" title="Theme"></button>
         <button class="btn-ghost small" id="settings-btn" title="Settings"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
         <button class="btn-primary" id="btn-new">
@@ -996,12 +1032,16 @@
     var unassigned = top.filter(isUnassigned);
     var pills = [
       {n:open.length, l:"Open", filter:null},
-      {n:overdue.length, l:"Overdue", filter:"overdue", warn:overdue.length>0},
+      {n:overdue.length, l:"Overdue", filter:"overdue", warn:overdue.length>0, positive:overdue.length===0},
       {n:critical.length, l:"Critical & open", filter:"critical", warn:critical.length>0},
       {n:unassigned.length, l:"Unassigned", filter:"unassigned", warn:unassigned.length>0}
     ];
     document.getElementById("stat-strip").innerHTML = pills.map(function(p){
-      return '<div class="stat-pill'+(p.warn?" warn":"")+'" data-goto-filter="'+(p.filter||"")+'"><span class="n">'+p.n+'</span><span class="l">'+p.l+'</span></div>';
+      var cls = "stat-pill" + (p.warn?" warn":"") + (p.positive?" positive":"");
+      var numHtml = p.positive
+        ? '<span class="n"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="4 13 9.5 18.5 20 6"/></svg> '+p.n+'</span>'
+        : '<span class="n">'+p.n+'</span>';
+      return '<div class="'+cls+'" data-goto-filter="'+(p.filter||"")+'">'+numHtml+'<span class="l">'+p.l+'</span></div>';
     }).join("");
   }
 
@@ -1094,6 +1134,30 @@
     while(container.children.length > idx) container.removeChild(container.lastChild);
   }
 
+  function itemSortComparator(a, b){
+    var ad = a.date || "9999-99-99", bd = b.date || "9999-99-99";
+    if(ad!==bd) return ad<bd ? -1 : 1;
+    var pr = {critical:0, high:1, medium:2};
+    var ap = pr[a.priority]!=null ? pr[a.priority] : 2, bp = pr[b.priority]!=null ? pr[b.priority] : 2;
+    if(ap!==bp) return ap-bp;
+    return (a.title||"").localeCompare(b.title||"");
+  }
+
+  function emptyStateHtml(){
+    if(Store.getAllItems().length===0){
+      return '<div class="empty-col empty-col-first-run">'
+        + '<div class="empty-col-title">Nothing to track yet</div>'
+        + '<div class="empty-col-sub">Create your first to-do to get started — you can also import a spreadsheet later from Settings.</div>'
+        + '<button type="button" class="btn-primary" data-empty-cta="new">'
+        + '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> New to-do</button>'
+        + '</div>';
+    }
+    if(state.searchQuery){
+      return '<div class="empty-col" style="padding:40px 20px;">No matches for "'+esc(state.searchQuery)+'"</div>';
+    }
+    return '<div class="empty-col" style="padding:40px 20px;">Nothing here — try a different category or filter</div>';
+  }
+
   function renderList(){
     var wrap = document.getElementById("list-wrap");
     var groupsById = {}; Store.getGroups().forEach(function(g){ groupsById[g.id]=g.name; });
@@ -1109,7 +1173,7 @@
 
     if(items.length===0){
       rowNodeCache.clear(); sectionNodeCache.clear();
-      wrap.innerHTML = '<div class="empty-col" style="padding:40px 20px;">Nothing here yet</div>';
+      wrap.innerHTML = emptyStateHtml();
       return;
     }
 
@@ -1124,6 +1188,7 @@
       order.forEach(function(pair){
         var list = buckets[pair[0]];
         if(!list.length) return;
+        list.sort(itemSortComparator);
         liveSectionKeys.push(pair[0]);
         var sec = getOrCreateSectionContainer(pair[0], true);
         sec.headerEl.innerHTML = pair[1] + ' <span class="section-count">'+list.length+'</span>';
@@ -1134,6 +1199,7 @@
       });
       while(wrap.children.length > idx) wrap.removeChild(wrap.lastChild);
     } else {
+      items.sort(itemSortComparator);
       liveSectionKeys.push("_flat");
       var sec2 = getOrCreateSectionContainer("_flat", false);
       if(wrap.children[0] !== sec2.outerEl) wrap.insertBefore(sec2.outerEl, wrap.children[0] || null);
@@ -1158,11 +1224,11 @@
     var searchForcesExpand = !!state.searchQuery && !matchesSearch(item, state.searchQuery) && kids.some(function(k){ return matchesSearch(k, state.searchQuery); });
     var expanded = !!state.expanded[item.id] || searchForcesExpand;
     var html = '<div class="row-wrap" role="listitem">';
-    html += '<div class="row'+(state.selected[item.id]?" selected":"")+'" data-id="'+item.id+'" draggable="true">';
+    html += '<div class="row'+(state.selected[item.id]?" selected":"")+'" data-id="'+item.id+'" tabindex="0" draggable="true">';
     if(kids.length){
       var progress = Store.progressOf(item.id);
       var pct = Math.round((progress.done/progress.total)*100);
-      html += '<button type="button" class="disclose-btn'+(expanded?" expanded":"")+'" data-toggle-expand="'+item.id+'" title="Show branches"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 6 15 12 9 18"/></svg></button>';
+      html += '<button type="button" class="disclose-btn'+(expanded?" expanded":"")+'" data-toggle-expand="'+item.id+'" aria-expanded="'+(expanded?"true":"false")+'" title="Show branches"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 6 15 12 9 18"/></svg></button>';
       html += '<span class="progress-ring" data-ring-for="'+item.id+'" style="background:conic-gradient(var(--accent) 0% '+pct+'%, var(--surface-sunken) '+pct+'% 100%);" title="'+progress.done+'/'+progress.total+' branches done"></span>';
     } else {
       html += checkboxHtml(item.id, eff==="done");
@@ -1184,7 +1250,7 @@
 
   function branchRowGroupHtml(k){
     var overdue = isOverdue(k);
-    var html = '<div class="row branch-row-list" data-id="'+k.id+'">';
+    var html = '<div class="row branch-row-list" data-id="'+k.id+'" tabindex="0">';
     html += checkboxHtml(k.id, k.status==="done");
     html += '<span class="row-title small'+(k.status==="done"?" done":"")+'" dir="auto">'+esc(k.title||"Untitled")+'</span>';
     html += priorityPillHtml(k.priority);
@@ -1235,7 +1301,10 @@
     var childrenWrap = scope.querySelector('[data-children-for="'+id+'"]');
     var discloseBtn = scope.querySelector('[data-toggle-expand="'+id+'"]');
     if(childrenWrap) childrenWrap.classList.toggle("expanded", state.expanded[id]);
-    if(discloseBtn) discloseBtn.classList.toggle("expanded", state.expanded[id]);
+    if(discloseBtn){
+      discloseBtn.classList.toggle("expanded", state.expanded[id]);
+      discloseBtn.setAttribute("aria-expanded", state.expanded[id]?"true":"false");
+    }
   }
 
   var lastClickedRowId = null;
@@ -2163,8 +2232,8 @@
 
   function buildPaletteUI(){
     document.getElementById("palette-content").innerHTML =
-      '<input type="text" id="palette-input" placeholder="Search to-dos, people, classifications, or actions...">'
-      + '<div id="palette-results"></div>';
+      '<input type="text" id="palette-input" role="combobox" aria-expanded="true" aria-controls="palette-results" aria-autocomplete="list" placeholder="Search to-dos, people, classifications, or actions...">'
+      + '<div id="palette-results" role="listbox"></div>';
     renderPaletteResults("");
     document.getElementById("palette-input").addEventListener("input", function(e){ renderPaletteResults(e.target.value); });
     document.getElementById("palette-input").addEventListener("keydown", function(e){
@@ -2179,16 +2248,24 @@
     var results = paletteIndex(query);
     paletteActionHandlers = results.map(function(r){ return r.run; });
     var html = results.length ? results.map(function(r,i){
-      return '<button type="button" class="palette-item'+(i===0?" active":"")+'" data-idx="'+i+'"><span class="palette-item-type">'+esc(r.type)+'</span><span class="palette-item-label" dir="auto">'+esc(r.label)+'</span>'+(r.sublabel?'<span class="palette-item-sub" dir="auto">'+esc(r.sublabel)+'</span>':"")+'</button>';
+      return '<button type="button" class="palette-item'+(i===0?" active":"")+'" id="palette-item-'+i+'" role="option" aria-selected="'+(i===0?"true":"false")+'" data-idx="'+i+'"><span class="palette-item-type">'+esc(r.type)+'</span><span class="palette-item-label" dir="auto">'+esc(r.label)+'</span>'+(r.sublabel?'<span class="palette-item-sub" dir="auto">'+esc(r.sublabel)+'</span>':"")+'</button>';
     }).join("") : '<div class="empty-col" style="padding:20px;">No matches</div>';
     document.getElementById("palette-results").innerHTML = html;
     document.querySelectorAll("#palette-results .palette-item").forEach(function(node, i){
       node.onclick = function(){ runPaletteChoice(i); };
     });
+    var input = document.getElementById("palette-input");
+    if(input) input.setAttribute("aria-activedescendant", results.length ? "palette-item-0" : "");
   }
   function highlightPaletteActive(){
     var rows = document.querySelectorAll("#palette-results .palette-item");
-    rows.forEach(function(n,i){ n.classList.toggle("active", i===paletteActiveIndex); });
+    rows.forEach(function(n,i){
+      var active = i===paletteActiveIndex;
+      n.classList.toggle("active", active);
+      n.setAttribute("aria-selected", active?"true":"false");
+    });
+    var input = document.getElementById("palette-input");
+    if(input && rows[paletteActiveIndex]) input.setAttribute("aria-activedescendant", rows[paletteActiveIndex].id);
     if(rows[paletteActiveIndex] && rows[paletteActiveIndex].scrollIntoView) rows[paletteActiveIndex].scrollIntoView({block:"nearest"});
   }
   function runPaletteChoice(i){
@@ -2201,6 +2278,64 @@
       e.preventDefault();
       if(paletteEl.classList.contains("show")) closePalette(); else openPalette();
     }
+  });
+
+  function isTypingContext(el){
+    if(!el) return false;
+    var tag = (el.tagName||"").toLowerCase();
+    return tag==="input" || tag==="textarea" || tag==="select" || el.isContentEditable;
+  }
+  function anyModalOpen(){
+    return panelEl.classList.contains("show") || document.getElementById("create-panel-el").classList.contains("show")
+      || syncPanelEl.classList.contains("show") || importPanelEl.classList.contains("show")
+      || categoriesPanelEl.classList.contains("show") || paletteEl.classList.contains("show");
+  }
+  function visibleRowEls(){
+    return Array.prototype.filter.call(document.querySelectorAll('#list-wrap .row[data-id]'), function(el){
+      var wrap = el.closest(".children-wrap");
+      return !wrap || wrap.classList.contains("expanded");
+    });
+  }
+  function focusRowByOffset(offset){
+    var rows = visibleRowEls();
+    if(!rows.length) return;
+    var current = document.activeElement && document.activeElement.closest ? document.activeElement.closest(".row[data-id]") : null;
+    var idx = current ? rows.indexOf(current) : -1;
+    var next = idx===-1 ? (offset>0?0:rows.length-1) : Math.min(Math.max(idx+offset,0), rows.length-1);
+    if(rows[next]) rows[next].focus();
+  }
+  function performGlobalUndo(){
+    if(!Store.canUndo()) return;
+    dismissExistingToasts();
+    if(Store.undo()){ renderAll(); showToast("Undone"); }
+  }
+  document.addEventListener("keydown", function(e){
+    var typing = isTypingContext(e.target);
+    if((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && (e.key==="z" || e.key==="Z")){
+      if(typing) return;
+      e.preventDefault();
+      performGlobalUndo();
+      return;
+    }
+    if(typing || anyModalOpen()) return;
+    if(e.key==="/"){
+      e.preventDefault();
+      var search = document.getElementById("search");
+      if(search) search.focus();
+      return;
+    }
+    if(state.rail==="overview" || state.rail==="team") return;
+    if(e.key==="j" || e.key==="k"){
+      e.preventDefault();
+      focusRowByOffset(e.key==="j" ? 1 : -1);
+      return;
+    }
+    var focusedRow = document.activeElement && document.activeElement.closest ? document.activeElement.closest("#list-wrap .row[data-id]") : null;
+    if(!focusedRow) return;
+    var rowId = focusedRow.getAttribute("data-id");
+    if(e.key==="Enter"){ e.preventDefault(); openDetail(rowId); return; }
+    if(e.key===" "){ e.preventDefault(); toggleDone(rowId); return; }
+    if(e.key==="x" || e.key==="X"){ e.preventDefault(); toggleRowSelect(rowId); return; }
   });
 
     var SheetsSync = (function(){
@@ -3023,6 +3158,8 @@
 
   var titleClickTimer = null;
   document.getElementById("list-wrap").addEventListener("click", function(e){
+    var emptyCta = e.target.closest("[data-empty-cta]");
+    if(emptyCta){ openCreatePanel(); return; }
     var toggle = e.target.closest("[data-status-toggle]");
     if(toggle){ toggleDone(toggle.getAttribute("data-status-toggle")); return; }
     var disclose = e.target.closest("[data-toggle-expand]");
@@ -3123,6 +3260,25 @@
     applyTheme(next);
   }
   document.getElementById("theme-toggle-btn").addEventListener("click", cycleTheme);
+  var DENSITY_KEY = "governance_tracker_density_v1";
+  var DENSITY_ICONS = {
+    comfortable: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>',
+    compact: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="5" x2="20" y2="5"/><line x1="4" y1="10" x2="20" y2="10"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="4" y1="20" x2="20" y2="20"/></svg>'
+  };
+  function currentDensity(){
+    try{ return localStorage.getItem(DENSITY_KEY) || "comfortable"; }catch(e){ return "comfortable"; }
+  }
+  function applyDensity(mode){
+    document.documentElement.setAttribute("data-density", mode);
+    try{ localStorage.setItem(DENSITY_KEY, mode); }catch(e){}
+    var btn = document.getElementById("density-toggle-btn");
+    if(btn){
+      var label = mode==="compact" ? "Compact" : "Comfortable";
+      btn.innerHTML = DENSITY_ICONS[mode] + "<span>"+label+"</span>";
+    }
+  }
+  function toggleDensity(){ applyDensity(currentDensity()==="compact" ? "comfortable" : "compact"); }
+  document.getElementById("density-toggle-btn").addEventListener("click", toggleDensity);
   if(window.matchMedia){
     var darkModeQuery = window.matchMedia("(prefers-color-scheme: dark)");
     var onOsThemeChange = function(){ if(currentThemeMode()==="auto") renderDataOverviewIfVisible(); };
@@ -3142,6 +3298,7 @@
   }
 
     applyTheme(currentThemeMode());
+  applyDensity(currentDensity());
   Store.init();
   restoreViewState();
   renderAll();
