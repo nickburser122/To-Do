@@ -257,8 +257,27 @@
   .chart-card-body{ height:220px; position:relative; }
   .chart-card.wide .chart-card-body{ height:260px; }
 
-    .staff-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(250px,1fr)); gap:14px; }
-  .staff-card{ background:var(--bg-raised); border:1px solid var(--line); border-radius:var(--radius); padding:16px; position:relative; }
+    .team-toolbar{ display:flex; align-items:center; gap:10px; margin-bottom:16px; flex-wrap:wrap; }
+  .view-toggle{ display:flex; border:1px solid var(--line); border-radius:11px; overflow:hidden; flex-shrink:0; }
+  .view-toggle-btn{ background:transparent; border:none; color:var(--ink-faint); padding:7px 10px; display:flex; align-items:center; justify-content:center; }
+  .view-toggle-btn:hover{ background:var(--line-soft); color:var(--ink); }
+  .view-toggle-btn[aria-pressed="true"]{ background:var(--accent-soft); color:var(--accent-ink); }
+  .team-group-select{ border:1px solid var(--line); border-radius:11px; padding:7px 30px 7px 12px; background:var(--bg-raised); color:var(--ink); font-size:12.5px; }
+  .team-table-scroll{ overflow-x:auto; border:1px solid var(--line); border-radius:var(--radius); background:var(--bg-raised); }
+  .team-table{ width:100%; border-collapse:collapse; font-size:12.5px; }
+  .team-table th, .team-table td{ padding:10px 14px; text-align:start; border-bottom:1px solid var(--hairline); white-space:nowrap; }
+  .team-table thead th{ font-weight:600; color:var(--ink-soft); cursor:pointer; user-select:none; position:sticky; top:0; background:var(--bg-raised); }
+  .team-table thead th:hover{ color:var(--ink); }
+  .team-table .sort-arrow{ margin-inline-start:4px; font-size:9px; color:var(--accent-ink); }
+  .team-table tbody tr{ cursor:pointer; }
+  .team-table tbody tr:hover{ background:var(--surface-2); }
+  .team-table tbody tr:focus-visible{ background:var(--accent-soft); }
+  .team-table td.num{ font-variant-numeric:tabular-nums; }
+  .team-table td.num.danger{ color:var(--danger); font-weight:600; }
+
+  .staff-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(250px,1fr)); gap:14px; }
+  .staff-card{ background:var(--bg-raised); border:1px solid var(--line); border-radius:var(--radius); padding:16px; position:relative; cursor:pointer; }
+  .staff-card:hover{ border-color:var(--ink-faint); }
   .staff-card-head{ display:flex; align-items:center; gap:10px; }
   .staff-name{ font-weight:600; font-size:14px; }
   .staff-dept{ font-size:11px; color:var(--ink-faint); }
@@ -272,10 +291,13 @@
   .cat-swatch-btn:hover{ transform:scale(1.12); }
   .cat-manage-name{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:600; font-size:13px; }
   .cat-manage-count{ font-size:11.5px; color:var(--ink-faint); flex-shrink:0; }
-  .staff-stats{ display:flex; gap:16px; margin:14px 0 8px; }
+  .staff-stats{ display:flex; gap:16px; margin:14px 0 8px; flex-wrap:wrap; }
   .stat-num{ font-size:19px; font-weight:600; }
   .stat-num.danger{ color:var(--danger); }
   .stat-label{ font-size:12px; color:var(--ink-faint); }
+  .staff-stats-sub{ display:flex; gap:14px; font-size:11.5px; color:var(--ink-faint); margin-bottom:10px; }
+  .staff-stats-sub strong{ color:var(--ink-soft); font-weight:600; }
+  .stat-num-sample{ font-weight:400; color:var(--ink-faint); font-size:0.9em; }
   .progress-bar{ height:5px; border-radius:4px; background:var(--line-soft); overflow:hidden; margin:6px 0 12px; }
   .progress-fill{ height:100%; background:var(--ok); }
   .staff-items{ display:flex; flex-direction:column; gap:5px; max-height:110px; overflow-y:auto; }
@@ -483,6 +505,7 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input id="search" type="text" placeholder="Search...">
       </div>
+      <div id="person-filter-chip"></div>
       <div class="topbar-actions">
         <button class="btn-ghost small" id="density-toggle-btn" title="Density"></button>
         <button class="btn-ghost small" id="theme-toggle-btn" title="Theme"></button>
@@ -521,7 +544,17 @@
     </main>
 
     <main id="pane-team" class="pane">
+      <div class="team-toolbar">
+        <div class="view-toggle" role="group" aria-label="Team view">
+          <button type="button" class="view-toggle-btn" id="team-view-cards-btn" title="Cards" aria-pressed="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></button>
+          <button type="button" class="view-toggle-btn" id="team-view-table-btn" title="Table" aria-pressed="false"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="1.5"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="9" y1="10" x2="9" y2="20"/></svg></button>
+        </div>
+        <select id="team-group-filter" class="team-group-select">
+          <option value="">All categories</option>
+        </select>
+      </div>
       <div class="staff-grid" id="staff-grid"></div>
+      <div id="team-table-wrap" style="display:none;"></div>
     </main>
   </div>
 </div>
@@ -534,6 +567,7 @@
 <aside class="detail-panel" id="categories-panel-el" role="dialog" aria-modal="true"><div class="detail-content" id="categories-panel-content"></div></aside>
 <div class="palette-modal" id="palette-el" role="dialog" aria-modal="true"><div id="palette-content"></div></div>
 <input type="file" id="import-file-input" accept=".xlsx,.xls,.csv" style="display:none">
+<input type="file" id="restore-json-input" accept=".json" style="display:none">
 <div id="popover-root"></div>
 <div class="bulk-bar" id="bulk-bar"></div>
 
@@ -567,6 +601,7 @@
   var SYNC_CONFIG_KEY = "governance_tracker_sync_cfg_v1";
   var BACKUP_KEY = "governance_tracker_v3_pre_replace_backup";
   var CATEGORY_MIGRATION_BACKUP_KEY = "governance_tracker_v3_pre_categories_migration";
+  var TIMESTAMP_MIGRATION_BACKUP_KEY = "governance_tracker_v3_pre_timestamps_migration";
 
   var PRIORITIES = ["medium","high","critical"];
   var STATUSES = ["todo","in_progress","done"];
@@ -622,6 +657,26 @@
     function ensureStaffDefaults(staff){
       staff.forEach(function(s, idx){ if(s.color==null) s.color = PALETTE[idx % PALETTE.length]; });
     }
+    function needsTimestampMigration(d){
+      return (d.items||[]).some(function(it){
+        if(it.createdAt===undefined) return true;
+        if(it.completedAt===undefined) return true;
+        if(it.firstCompletedAt===undefined) return true;
+        return (it.assignees||[]).some(function(a){ return a.assignedAt===undefined; });
+      });
+    }
+    function ensureItemTimestampDefaults(items){
+      (items||[]).forEach(function(it){
+        if(it.createdAt===undefined) it.createdAt = null;
+        if(it.completedAt===undefined) it.completedAt = null;
+        if(it.firstCompletedAt===undefined) it.firstCompletedAt = null;
+        if(!it.assignees) it.assignees = [];
+        it.assignees.forEach(function(a){
+          if(a.assignedAt===undefined) a.assignedAt = null;
+          a.isLead = !!a.isLead;
+        });
+      });
+    }
     function load(){
       try{
         var raw = localStorage.getItem(STORAGE_KEY);
@@ -632,6 +687,11 @@
         try{ localStorage.setItem(CATEGORY_MIGRATION_BACKUP_KEY, JSON.stringify({ ts:Date.now(), data:data })); }catch(e){}
         ensureGroupDefaults(data.groups);
         ensureStaffDefaults(data.staff);
+        persist();
+      }
+      if(needsTimestampMigration(data)){
+        try{ localStorage.setItem(TIMESTAMP_MIGRATION_BACKUP_KEY, JSON.stringify({ ts:Date.now(), data:data })); }catch(e){}
+        ensureItemTimestampDefaults(data.items);
         persist();
       }
     }
@@ -695,6 +755,15 @@
       data.groups.forEach(function(g){ idxGroupById.set(g.id, g); });
       idxGroupsSorted = data.groups.slice().sort(function(a,b){ return (a.order||0)-(b.order||0); });
       indexBuiltAt = indexVersion;
+    }
+
+    // stamp=true  -> live user action, a missing assignedAt means "just now"
+    // stamp=false -> rehydrating from storage/sheet/file, missing means "unknown"
+    function normalizeAssignee(a, stamp){
+      var t = (a.assignedAt===undefined || a.assignedAt===null)
+        ? (stamp ? nowISO() : null)
+        : a.assignedAt;
+      return { staffId:a.staffId, isLead:!!a.isLead, assignedAt:t };
     }
 
     var api = {
@@ -763,13 +832,16 @@
         var personCopy = person ? JSON.parse(JSON.stringify(person)) : null;
         var affected = [];
         data.items.forEach(function(it){
-          it.assignees.forEach(function(a){ if(a.staffId===id) affected.push({itemId:it.id, isLead:a.isLead}); });
+          (it.assignees||[]).forEach(function(a, pos){
+            if(a.staffId===id) affected.push({ itemId:it.id, pos:pos, snap:JSON.parse(JSON.stringify(a)) });
+          });
         });
         pushUndoInverse(label, function(){
           if(personCopy){ data.staff.splice(staffIdx>=0?staffIdx:data.staff.length, 0, personCopy); }
-          affected.forEach(function(a){
-            var it = data.items.filter(function(x){ return x.id===a.itemId; })[0];
-            if(it) it.assignees.push({staffId:id, isLead:a.isLead});
+          affected.forEach(function(rec){
+            var it = data.items.filter(function(x){ return x.id===rec.itemId; })[0];
+            if(!it) return;
+            it.assignees.splice(Math.min(rec.pos, it.assignees.length), 0, JSON.parse(JSON.stringify(rec.snap)));
           });
         });
         data.staff = data.staff.filter(function(s){ return s.id!==id; });
@@ -784,13 +856,35 @@
       getTopLevel: function(){ ensureIndex(); return idxTopLevel; },
 
       createItem: function(patch){
+        var t = nowISO();
         var item = Object.assign({
           id: "i"+(data.nextItemId++), parentId:null, groupId:data.groups[0]?data.groups[0].id:null,
-          title:"", date:todayISO(), assignees:[], priority:"medium", status:"todo", notes:""
+          title:"", date:todayISO(), assignees:[], priority:"medium", status:"todo", notes:"",
+          createdAt:t, completedAt:null, firstCompletedAt:null
         }, patch);
+        item.assignees = (item.assignees||[]).map(function(a){ return normalizeAssignee(a, true); });
+        if(item.status==="done" && !item.completedAt){ item.completedAt = t; item.firstCompletedAt = t; }
         data.items.push(item); persist(); return item;
       },
-      updateItem: function(id, patch){ var item=this.getItem(id); if(!item) return null; Object.assign(item,patch); persist(); return item; },
+      updateItem: function(id, patch){
+        var item = this.getItem(id);
+        if(!item) return null;
+        if(Object.prototype.hasOwnProperty.call(patch, "status") && patch.status !== item.status){
+          if(patch.status === "done"){
+            var t = nowISO();
+            patch.completedAt = t;
+            if(!item.firstCompletedAt) patch.firstCompletedAt = t;
+          } else if(item.status === "done"){
+            patch.completedAt = null;
+          }
+        }
+        if(patch.assignees){
+          patch.assignees = patch.assignees.map(function(a){ return normalizeAssignee(a, true); });
+        }
+        Object.assign(item, patch);
+        persist();
+        return item;
+      },
       deleteItem: function(id){
         var item = this.getItem(id);
         var label = item ? ('Deleted "' + (item.title||"Untitled") + '"') : "Deleted";
@@ -815,7 +909,7 @@
       addAssignee: function(id, staffId){
         var item=this.getItem(id); if(!item) return;
         if(item.assignees.some(function(a){ return a.staffId===staffId; })) return;
-        item.assignees.push({staffId:staffId, isLead:false}); persist();
+        item.assignees.push(normalizeAssignee({staffId:staffId, isLead:false}, true)); persist();
       },
       removeAssignee: function(id, staffId){
         var item=this.getItem(id); if(!item) return;
@@ -834,9 +928,14 @@
 
       _replaceAll: function(newData, label){
         pushUndo(label || "Data replaced");
+        undoStack = [undoStack[undoStack.length-1]];
         try{ localStorage.setItem(BACKUP_KEY, JSON.stringify({ ts:Date.now(), label:label||"", data:data })); }catch(e){}
         ensureGroupDefaults(newData.groups||[]);
         ensureStaffDefaults(newData.staff||[]);
+        ensureItemTimestampDefaults(newData.items||[]);
+        (newData.items||[]).forEach(function(it){
+          it.assignees = (it.assignees||[]).map(function(a){ return normalizeAssignee(a, false); });
+        });
         data = newData;
         persist();
       },
@@ -882,6 +981,7 @@
     return y + "-" + (m<10?"0"+m:m) + "-" + (day<10?"0"+day:day);
   }
   function todayISO(){ return localISO(new Date()); }
+  function nowISO(){ return new Date().toISOString(); }
 
   var effStatusCache = null;
   var effStatusCacheVersion = -1;
@@ -900,6 +1000,35 @@
     }
     effStatusCache.set(item.id, result);
     return result;
+  }
+  var completionCache = null, completionCacheVersion = -1;
+  function completionInstant(item){
+    var v = Store.getVersion();
+    if(completionCacheVersion !== v){ completionCache = new Map(); completionCacheVersion = v; }
+    if(completionCache.has(item.id)) return completionCache.get(item.id);
+
+    var kids = Store.getChildren(item.id);
+    var result;
+    if(kids.length === 0){
+      result = item.completedAt || null;
+    } else {
+      var known = true, maxMs = -Infinity, maxIso = null;
+      for(var i=0;i<kids.length;i++){
+        var k = kids[i];
+        if(k.status !== "done" || !k.completedAt){ known = false; break; }
+        var ms = Date.parse(k.completedAt);
+        if(isNaN(ms)){ known = false; break; }
+        if(ms > maxMs){ maxMs = ms; maxIso = k.completedAt; }
+      }
+      result = known ? maxIso : null;
+    }
+    completionCache.set(item.id, result);
+    return result;
+  }
+  function effectiveGroupId(item){
+    if(!item.parentId) return item.groupId || null;
+    var p = Store.getItem(item.parentId);
+    return p ? (p.groupId || null) : (item.groupId || null);
   }
   function isOverdue(item){
     if(!item.date) return false;
@@ -971,7 +1100,8 @@
     focusReturnEl = null;
   }
 
-  var state = { rail:"all", tableFilter:"all", searchQuery:"", expanded:{}, selected:{} };
+  var state = { rail:"all", tableFilter:"all", searchQuery:"", expanded:{}, selected:{},
+    teamView:"cards", teamSort:"total", teamSortDir:"desc", teamGroupFilter:null, personFilter:null };
   var relistTimer = null;
 
     function renderRail(){
@@ -1018,10 +1148,20 @@
     document.getElementById("pane-team").classList.toggle("active", key==="team");
     if(isList) renderList();
     if(key==="overview") renderDataOverview();
-    if(key==="team") renderStaff();
+    if(key==="team") renderTeam();
   }
   var VIEW_STATE_KEY = "governance_tracker_view_v1";
-  function saveViewState(){ try{ localStorage.setItem(VIEW_STATE_KEY, JSON.stringify({ rail:state.rail, filter:state.tableFilter })); }catch(e){} }
+  function saveViewState(){
+    try{ localStorage.setItem(VIEW_STATE_KEY, JSON.stringify({
+      rail: state.rail,
+      filter: state.tableFilter,
+      teamView: state.teamView,
+      teamSort: state.teamSort,
+      teamSortDir: state.teamSortDir,
+      teamGroupFilter: state.teamGroupFilter,
+      personFilter: state.personFilter
+    })); }catch(e){}
+  }
   function loadViewState(){ try{ var raw=localStorage.getItem(VIEW_STATE_KEY); if(raw) return JSON.parse(raw); }catch(e){} return null; }
 
     function renderStats(){
@@ -1155,9 +1295,18 @@
     if(state.searchQuery){
       return '<div class="empty-col" style="padding:40px 20px;">No matches for "'+esc(state.searchQuery)+'"</div>';
     }
+    if(state.personFilter){
+      var p = Store.getStaffById(state.personFilter);
+      return '<div class="empty-col" style="padding:40px 20px;">Nothing assigned to '+esc(p?p.name:"that person")+' here</div>';
+    }
     return '<div class="empty-col" style="padding:40px 20px;">Nothing here — try a different category or filter</div>';
   }
 
+  function itemOrChildrenHavePerson(it, staffId){
+    if(!staffId) return true;
+    if(it.assignees.some(function(a){ return a.staffId===staffId; })) return true;
+    return Store.getChildren(it.id).some(function(k){ return k.assignees.some(function(a){ return a.staffId===staffId; }); });
+  }
   function renderList(){
     var wrap = document.getElementById("list-wrap");
     var groupsById = {}; Store.getGroups().forEach(function(g){ groupsById[g.id]=g.name; });
@@ -1168,6 +1317,7 @@
       else if(state.rail!=="all" && it.groupId!==state.rail){ return false; }
       if(!passesFilter(it)) return false;
       if(!itemOrChildrenMatchSearch(it, state.searchQuery)) return false;
+      if(!itemOrChildrenHavePerson(it, state.personFilter)) return false;
       return true;
     });
 
@@ -1342,7 +1492,11 @@
       + '<button type="button" id="bulk-cancel-btn">Cancel</button>';
     bar.classList.add("show");
     document.getElementById("bulk-done-btn").onclick = function(){
-      ids.forEach(function(id){ Store.updateItem(id, {status:"done"}); });
+      ids.forEach(function(id){
+        var kids = Store.getChildren(id);
+        if(kids.length){ kids.forEach(function(k){ Store.updateItem(k.id, {status:"done"}); }); }
+        else { Store.updateItem(id, {status:"done"}); }
+      });
       clearSelection();
       renderAll();
     };
@@ -1396,36 +1550,205 @@
     });
   }
 
-  function renderStaff(){
+  function median(arr){
+    var a = arr.slice().sort(function(x,y){ return x-y; });
+    var n = a.length, mid = n >> 1;
+    return n % 2 ? a[mid] : (a[mid-1] + a[mid]) / 2;
+  }
+  function formatDuration(ms){
+    if(ms == null) return "";
+    var h = ms / 3600000;
+    if(h < 1) return Math.max(1, Math.round(ms/60000)) + "m";
+    if(h < 24) return (h < 10 ? String(Math.round(h*10)/10) : String(Math.round(h))) + "h";
+    var d = h / 24;
+    return (d < 10 ? String(Math.round(d*10)/10) : String(Math.round(d))) + "d";
+  }
+  var teamStatsCache = new Map();
+  var teamStatsVersion = -1;
+  function getTeamStats(groupFilter){
+    var v = Store.getVersion();
+    if(teamStatsVersion !== v){ teamStatsCache = new Map(); teamStatsVersion = v; }
+    var key = groupFilter || "__all__";
+    if(teamStatsCache.has(key)) return teamStatsCache.get(key);
+
+    var byStaff = new Map();
+    Store.getStaff().forEach(function(s){
+      byStaff.set(s.id, { staffId:s.id, total:0, open:0, inProgress:0, done:0,
+                          overdue:0, criticalOpen:0, lead:0, _d:[], sample:0, medianMs:null });
+    });
+
+    var today = todayISO();
+    Store.getAllItems().forEach(function(it){
+      if(!it.assignees || !it.assignees.length) return;
+      if(groupFilter && effectiveGroupId(it) !== groupFilter) return;
+
+      var eff = effectiveStatus(it);
+      var isDone = eff === "done";
+      var overdue = !isDone && !!it.date && it.date < today;
+      var crit = !isDone && it.priority === "critical";
+      var compAt = isDone ? completionInstant(it) : null;
+      var compMs = compAt ? Date.parse(compAt) : NaN;
+
+      it.assignees.forEach(function(a){
+        var st = byStaff.get(a.staffId);
+        if(!st) return;
+        st.total++;
+        if(isDone){ st.done++; }
+        else { st.open++; if(eff === "in_progress") st.inProgress++; }
+        if(overdue) st.overdue++;
+        if(crit) st.criticalOpen++;
+        if(a.isLead) st.lead++;
+        if(isDone && a.assignedAt && !isNaN(compMs)){
+          var d = compMs - Date.parse(a.assignedAt);
+          if(isFinite(d) && d >= 0) st._d.push(d);
+        }
+      });
+    });
+
+    byStaff.forEach(function(st){
+      st.sample = st._d.length;
+      st.medianMs = st.sample ? median(st._d) : null;
+      st._d = null;
+    });
+
+    teamStatsCache.set(key, byStaff);
+    return byStaff;
+  }
+
+  function populateTeamGroupFilter(){
+    var sel = document.getElementById("team-group-filter");
+    if(!sel) return;
+    var current = state.teamGroupFilter || "";
+    var html = '<option value="">All categories</option>';
+    Store.getGroups().forEach(function(g){ html += '<option value="'+esc(g.id)+'">'+esc(g.name)+'</option>'; });
+    sel.innerHTML = html;
+    sel.value = current;
+  }
+
+  function renderTeam(){
+    populateTeamGroupFilter();
+    var cardsEl = document.getElementById("staff-grid");
+    var tableEl = document.getElementById("team-table-wrap");
+    var isTable = state.teamView === "table";
+    cardsEl.style.display = isTable ? "none" : "";
+    tableEl.style.display = isTable ? "" : "none";
+    document.getElementById("team-view-cards-btn").setAttribute("aria-pressed", isTable ? "false" : "true");
+    document.getElementById("team-view-table-btn").setAttribute("aria-pressed", isTable ? "true" : "false");
+    if(isTable) renderTeamTable(); else renderStaffCards();
+  }
+
+  function renderStaffCards(){
     var container = document.getElementById("staff-grid");
     var staff = Store.getStaff();
     var allItems = Store.getAllItems();
+    var stats = getTeamStats(state.teamGroupFilter);
     var html = "";
     staff.forEach(function(person){
+      var st = stats.get(person.id) || {total:0,open:0,inProgress:0,done:0,overdue:0,criticalOpen:0,lead:0,sample:0,medianMs:null};
       var assigned = allItems.filter(function(it){ return it.assignees.some(function(a){ return a.staffId===person.id; }); });
-      var total = assigned.length;
-      var done = assigned.filter(function(it){ return effectiveStatus(it)==="done"; }).length;
-      var open = total-done;
-      var overdue = assigned.filter(isOverdue).length;
-      var critical = assigned.filter(function(it){ return it.priority==="critical" && effectiveStatus(it)!=="done"; }).length;
-      var pct = total ? Math.round((done/total)*100) : 0;
+      var pct = st.total ? Math.round((st.done/st.total)*100) : 0;
+      var turnaroundHtml = st.sample
+        ? formatDuration(st.medianMs) + ' <span class="stat-num-sample">(n='+st.sample+')</span>'
+        : '<span title="Not enough data yet">&mdash;</span>';
 
-      html += '<div class="staff-card">';
+      html += '<div class="staff-card" data-person-card="'+person.id+'" tabindex="0">';
       html += '<button class="staff-remove" data-remove-staff="'+person.id+'" title="Remove">&times;</button>';
       html += '<div class="staff-card-head">'+personRoundelHtml(person.id)+'<div><div class="staff-name" dir="auto">'+esc(person.name)+'</div><div class="staff-dept" dir="auto">'+esc(person.dept)+'</div></div></div>';
       html += '<div class="staff-stats">';
-      html += '<div><div class="stat-num">'+open+'</div><div class="stat-label">Open</div></div>';
-      html += '<div><div class="stat-num'+(overdue>0?" danger":"")+'">'+overdue+'</div><div class="stat-label">Overdue</div></div>';
-      html += '<div><div class="stat-num'+(critical>0?" danger":"")+'">'+critical+'</div><div class="stat-label">Critical</div></div>';
+      html += '<div><div class="stat-num">'+st.total+'</div><div class="stat-label">Total assigned</div></div>';
+      html += '<div><div class="stat-num">'+st.open+'</div><div class="stat-label">Open</div></div>';
+      html += '<div><div class="stat-num'+(st.overdue>0?" danger":"")+'">'+st.overdue+'</div><div class="stat-label">Overdue</div></div>';
+      html += '<div><div class="stat-num'+(st.criticalOpen>0?" danger":"")+'">'+st.criticalOpen+'</div><div class="stat-label">Critical</div></div>';
       html += '</div>';
+      html += '<div class="staff-stats-sub"><span>Lead on <strong>'+st.lead+'</strong></span><span>Typical turnaround <strong>'+turnaroundHtml+'</strong></span></div>';
       html += '<div class="progress-bar"><div class="progress-fill" style="width:'+pct+'%"></div></div>';
       html += '<div class="staff-items">';
-      if(total===0){ html += '<div class="staff-item-row">Nothing assigned yet</div>'; }
+      if(assigned.length===0){ html += '<div class="staff-item-row">Nothing assigned yet</div>'; }
       else { assigned.forEach(function(it){ html += '<div class="staff-item-row"><span class="status-dot-mini '+effectiveStatus(it)+'"></span><span dir="auto">'+esc(it.title||"Untitled")+'</span></div>'; }); }
       html += '</div></div>';
     });
     html += '<button class="add-tile" id="add-staff-btn">+ Add person</button>';
     container.innerHTML = html;
+  }
+
+  var TEAM_TABLE_COLUMNS = [
+    {key:"name", label:"Name"},
+    {key:"dept", label:"Dept"},
+    {key:"total", label:"Total assigned"},
+    {key:"open", label:"Open"},
+    {key:"overdue", label:"Overdue"},
+    {key:"criticalOpen", label:"Critical"},
+    {key:"lead", label:"Lead on"},
+    {key:"turnaround", label:"Typical turnaround"}
+  ];
+  function renderTeamTable(){
+    var wrap = document.getElementById("team-table-wrap");
+    var staff = Store.getStaff();
+    var stats = getTeamStats(state.teamGroupFilter);
+    var rows = staff.map(function(person){
+      return { person:person, st: stats.get(person.id) || {total:0,open:0,inProgress:0,done:0,overdue:0,criticalOpen:0,lead:0,sample:0,medianMs:null} };
+    });
+    var sortKey = state.teamSort;
+    var dir = state.teamSortDir==="asc" ? 1 : -1;
+    rows.sort(function(a,b){
+      if(sortKey==="name") return dir * (a.person.name||"").localeCompare(b.person.name||"");
+      if(sortKey==="dept") return dir * (a.person.dept||"").localeCompare(b.person.dept||"");
+      if(sortKey==="turnaround"){
+        var av = a.st.medianMs==null ? -Infinity : a.st.medianMs;
+        var bv = b.st.medianMs==null ? -Infinity : b.st.medianMs;
+        return dir * (av-bv);
+      }
+      return dir * ((a.st[sortKey]||0) - (b.st[sortKey]||0));
+    });
+
+    var html = '<div class="team-table-scroll"><table class="team-table"><thead><tr>';
+    TEAM_TABLE_COLUMNS.forEach(function(col){
+      var isSorted = state.teamSort===col.key;
+      var ariaSort = isSorted ? (state.teamSortDir==="asc"?"ascending":"descending") : null;
+      html += '<th scope="col" data-sort-key="'+col.key+'"'+(ariaSort?' aria-sort="'+ariaSort+'"':'')+'>'+esc(col.label)
+        + '<span class="sort-arrow">'+(isSorted ? (state.teamSortDir==="asc"?"&#9650;":"&#9660;") : "")+'</span></th>';
+    });
+    html += '</tr></thead><tbody>';
+    if(rows.length===0){
+      html += '<tr><td colspan="'+TEAM_TABLE_COLUMNS.length+'" class="empty-col" style="padding:24px;">No one added yet</td></tr>';
+    } else {
+      rows.forEach(function(r){
+        var st = r.st;
+        var turnaroundHtml = st.sample
+          ? formatDuration(st.medianMs) + ' <span class="stat-num-sample">(n='+st.sample+')</span>'
+          : '<span title="Not enough data yet">&mdash;</span>';
+        html += '<tr data-person-row="'+r.person.id+'" tabindex="0">';
+        html += '<td dir="auto">'+esc(r.person.name)+'</td>';
+        html += '<td dir="auto">'+esc(r.person.dept||"")+'</td>';
+        html += '<td class="num">'+st.total+'</td>';
+        html += '<td class="num">'+st.open+'</td>';
+        html += '<td class="num'+(st.overdue>0?" danger":"")+'">'+st.overdue+'</td>';
+        html += '<td class="num'+(st.criticalOpen>0?" danger":"")+'">'+st.criticalOpen+'</td>';
+        html += '<td class="num">'+st.lead+'</td>';
+        html += '<td class="num">'+turnaroundHtml+'</td>';
+        html += '</tr>';
+      });
+    }
+    html += '</tbody></table></div>';
+    wrap.innerHTML = html;
+  }
+
+  function filterListByPerson(staffId){
+    state.personFilter = staffId;
+    saveViewState();
+    renderPersonFilterChip();
+    setRail("all");
+  }
+  function renderPersonFilterChip(){
+    var el = document.getElementById("person-filter-chip");
+    if(!el) return;
+    var p = state.personFilter ? Store.getStaffById(state.personFilter) : null;
+    if(!p){ el.innerHTML = ""; return; }
+    el.innerHTML = '<span class="date-chip">Showing ' + esc(p.name) + "'s items"
+      + '<button type="button" id="clear-person-filter" title="Clear">&times;</button></span>';
+    document.getElementById("clear-person-filter").onclick = function(){
+      state.personFilter = null; saveViewState(); renderPersonFilterChip(); renderList();
+    };
   }
 
     var chartInstances = {};
@@ -1563,7 +1886,7 @@
     if(d.stats) renderStats();
     if(d.rail) renderRail();
     if(d.list){
-      if(state.rail==="team") renderStaff();
+      if(state.rail==="team") renderTeam();
       else if(state.rail!=="overview") renderList();
     }
     if(d.charts && state.rail==="overview") renderDataOverview();
@@ -1573,6 +1896,7 @@
   function renderAll(){ markDirty("all"); }
   window.renderAll = renderAll;
   window.markDirty = markDirty;
+  window._teamInternal = { completionInstant:completionInstant, effectiveGroupId:effectiveGroupId, getTeamStats:getTeamStats, median:median, formatDuration:formatDuration };
   window.showToast = showToast;
 
     var panelEl = document.getElementById("detail-panel");
@@ -2173,7 +2497,7 @@
       + '<div class="mini-form-foot"><button class="btn-ghost small" id="cancel-add-staff">Cancel</button><button class="btn-primary" id="save-add-staff" style="padding:6px 12px;">Add</button></div>'
       + '</div>';
     document.getElementById("new-staff-name").focus();
-    document.getElementById("cancel-add-staff").onclick = function(){ renderStaff(); };
+    document.getElementById("cancel-add-staff").onclick = function(){ renderTeam(); };
     document.getElementById("save-add-staff").onclick = function(){
       var name = document.getElementById("new-staff-name").value.trim();
       if(!name) return;
@@ -2346,24 +2670,46 @@
     function loadCfg(){ try{ var raw=localStorage.getItem(SYNC_CONFIG_KEY); if(raw) cfg=JSON.parse(raw); }catch(e){} }
     function saveCfg(){ try{ localStorage.setItem(SYNC_CONFIG_KEY, JSON.stringify(cfg)); }catch(e){} }
 
-    function encodeAssignees(assignees){ return (assignees||[]).map(function(a){ return a.staffId+(a.isLead?"*":""); }).join(";"); }
+    function encodeAssignees(assignees){
+      return (assignees||[]).map(function(a){
+        return a.staffId + (a.isLead ? "*" : "") + (a.assignedAt ? "@" + a.assignedAt : "");
+      }).join(";");
+    }
     function decodeAssignees(str){
       if(!str) return [];
       return String(str).split(";").map(function(t){ return t.trim(); }).filter(Boolean).map(function(tok){
-        var isLead = tok.charAt(tok.length-1)==="*";
-        return { staffId: isLead?tok.slice(0,-1):tok, isLead:isLead };
+        var at = tok.indexOf("@");
+        var assignedAt = null, head = tok;
+        if(at !== -1){ assignedAt = tok.slice(at+1) || null; head = tok.slice(0, at); }
+        var isLead = head.charAt(head.length-1) === "*";
+        return { staffId: isLead ? head.slice(0,-1) : head, isLead:isLead, assignedAt:assignedAt };
       });
     }
-    function groupsToRows(groups){ return groups.map(function(g){ return [g.id,g.name]; }); }
-    function rowsToGroups(rows){ return (rows||[]).filter(function(r){ return r[0]; }).map(function(r){ return {id:r[0],name:r[1]||""}; }); }
-    function staffToRows(staff){ return staff.map(function(s){ return [s.id,s.name,s.dept||""]; }); }
-    function rowsToStaff(rows){ return (rows||[]).filter(function(r){ return r[0]; }).map(function(r){ return {id:r[0],name:r[1]||"",dept:r[2]||""}; }); }
+    function groupsToRows(groups){ return groups.map(function(g){ return [g.id, g.name, g.color||"", g.order==null?"":g.order]; }); }
+    function rowsToGroups(rows){
+      return (rows||[]).filter(function(r){ return r[0]; }).map(function(r, i){
+        var ord = parseInt(r[3], 10);
+        return { id:r[0], name:r[1]||"", color:r[2]||null, order:isNaN(ord)?i:ord };
+      });
+    }
+    function staffToRows(staff){ return staff.map(function(s){ return [s.id, s.name, s.dept||"", s.color||""]; }); }
+    function rowsToStaff(rows){
+      return (rows||[]).filter(function(r){ return r[0]; }).map(function(r){
+        return { id:r[0], name:r[1]||"", dept:r[2]||"", color:r[3]||null };
+      });
+    }
     function itemsToRows(items){
-      return items.map(function(it){ return [it.id, it.parentId||"", it.groupId||"", it.title||"", it.date||"", encodeAssignees(it.assignees), it.priority||"medium", it.status||"todo", it.notes||""]; });
+      return items.map(function(it){
+        return [ it.id, it.parentId||"", it.groupId||"", it.title||"", it.date||"",
+                 encodeAssignees(it.assignees), it.priority||"medium", it.status||"todo", it.notes||"",
+                 it.createdAt||"", it.completedAt||"", it.firstCompletedAt||"" ];
+      });
     }
     function rowsToItems(rows){
       return (rows||[]).filter(function(r){ return r[0]; }).map(function(r){
-        return { id:r[0], parentId:r[1]||null, groupId:r[2]||"", title:r[3]||"", date:r[4]||"", assignees:decodeAssignees(r[5]), priority:r[6]||"medium", status:r[7]||"todo", notes:r[8]||"" };
+        return { id:r[0], parentId:r[1]||null, groupId:r[2]||"", title:r[3]||"", date:r[4]||"",
+                 assignees:decodeAssignees(r[5]), priority:r[6]||"medium", status:r[7]||"todo", notes:r[8]||"",
+                 createdAt:r[9]||null, completedAt:r[10]||null, firstCompletedAt:r[11]||null };
       });
     }
     function maxIdNum(list, prefix){
@@ -2432,7 +2778,7 @@
         if(!accessToken || !cfg.sheetId){ notify("err","Connect and set a Spreadsheet ID first."); return; }
         notify("info","Pulling...");
         var base = "https://sheets.googleapis.com/v4/spreadsheets/"+cfg.sheetId+"/values:batchGet";
-        var ranges = ["Items!A2:I","Groups!A2:B","Staff!A2:C"].map(function(r){ return "ranges="+encodeURIComponent(r); }).join("&");
+        var ranges = ["Items!A2:L","Groups!A2:D","Staff!A2:D"].map(function(r){ return "ranges="+encodeURIComponent(r); }).join("&");
         fetch(base+"?"+ranges, { headers:{ Authorization:"Bearer "+accessToken } })
           .then(function(r){ if(!r.ok) return r.json().then(function(e){ throw new Error(e.error&&e.error.message||r.statusText); }); return r.json(); })
           .then(function(json){
@@ -2451,20 +2797,30 @@
         if(!accessToken || !cfg.sheetId){ notify("err","Connect and set a Spreadsheet ID first."); return; }
         notify("info","Preparing sheet...");
         this.ensureTabs(function(){
-          notify("info","Pushing...");
           var snap = Store._snapshot();
           var base = "https://sheets.googleapis.com/v4/spreadsheets/"+cfg.sheetId+"/values";
-          var payload = { valueInputOption:"RAW", data:[
-            { range:"Items!A1:I1", values:[["id","parentId","groupId","title","date","assignees","priority","status","notes"]] },
-            { range:"Items!A2", values:itemsToRows(snap.items) },
-            { range:"Groups!A1:B1", values:[["id","name"]] },
-            { range:"Groups!A2", values:groupsToRows(snap.groups) },
-            { range:"Staff!A1:C1", values:[["id","name","dept"]] },
-            { range:"Staff!A2", values:staffToRows(snap.staff) }
-          ]};
-          fetch(base+":batchUpdate", { method:"POST", headers:{ Authorization:"Bearer "+accessToken, "Content-Type":"application/json" }, body:JSON.stringify(payload) })
-            .then(function(r){ if(!r.ok) return r.json().then(function(e){ throw new Error(e.error&&e.error.message||r.statusText); }); notify("ok","Pushed "+snap.items.length+" items to the sheet."); })
-            .catch(function(err){ notify("err","Push failed: "+err.message); });
+          var hdrs = { Authorization:"Bearer "+accessToken, "Content-Type":"application/json" };
+          notify("info","Clearing old rows...");
+          fetch(base+":batchClear", { method:"POST", headers:hdrs,
+            body: JSON.stringify({ ranges:["Items!A2:Z","Groups!A2:Z","Staff!A2:Z"] }) })
+          .then(function(r){ if(!r.ok) return r.json().then(function(e){ throw new Error(e.error&&e.error.message||r.statusText); }); })
+          .then(function(){
+            notify("info","Pushing...");
+            var payload = { valueInputOption:"RAW", data:[
+              { range:"Items!A1:L1", values:[["id","parentId","groupId","title","date","assignees","priority","status","notes","createdAt","completedAt","firstCompletedAt"]] },
+              { range:"Items!A2", values:itemsToRows(snap.items) },
+              { range:"Groups!A1:D1", values:[["id","name","color","order"]] },
+              { range:"Groups!A2", values:groupsToRows(snap.groups) },
+              { range:"Staff!A1:D1", values:[["id","name","dept","color"]] },
+              { range:"Staff!A2", values:staffToRows(snap.staff) }
+            ]};
+            return fetch(base+":batchUpdate", { method:"POST", headers:hdrs, body:JSON.stringify(payload) });
+          })
+          .then(function(r){
+            if(!r.ok) return r.json().then(function(e){ throw new Error(e.error&&e.error.message||r.statusText); });
+            notify("ok","Pushed "+snap.items.length+" items to the sheet.");
+          })
+          .catch(function(err){ notify("err","Push failed: "+err.message); });
         });
       },
       _internal: { encodeAssignees:encodeAssignees, decodeAssignees:decodeAssignees, itemsToRows:itemsToRows, rowsToItems:rowsToItems, groupsToRows:groupsToRows, rowsToGroups:rowsToGroups, staffToRows:staffToRows, rowsToStaff:rowsToStaff }
@@ -2717,6 +3073,7 @@
 
       records.forEach(function(rec){
         var id = "i"+(nextItemNum++);
+        var t = nowISO();
         var parentId=null, groupId;
         if(rec.parentTitle && titleToId[rec.parentTitle]){
           parentId = titleToId[rec.parentTitle];
@@ -2725,8 +3082,9 @@
         } else {
           groupId = findOrCreateGroup(rec.groupName);
         }
-        var assignees = rec.assignees.map(function(a){ var sid=findOrCreateStaff(a.name); return sid?{staffId:sid,isLead:a.isLead}:null; }).filter(Boolean);
-        var item = { id:id, parentId:parentId, groupId:groupId, title:rec.title, date:rec.date, assignees:assignees, priority:rec.priority, status:rec.status, notes:rec.notes };
+        var assignees = rec.assignees.map(function(a){ var sid=findOrCreateStaff(a.name); return sid?{staffId:sid,isLead:a.isLead,assignedAt:t}:null; }).filter(Boolean);
+        var item = { id:id, parentId:parentId, groupId:groupId, title:rec.title, date:rec.date, assignees:assignees, priority:rec.priority, status:rec.status, notes:rec.notes,
+                     createdAt:t, completedAt:null, firstCompletedAt:null };
         items.push(item);
         if(!parentId) titleToId[rec.title]=id;
       });
@@ -2772,9 +3130,9 @@
       var rows = [["Title","Date","Group","Assignees","Priority","Status","Notes","Parent"]];
       var groupsById = {}; Store.getGroups().forEach(function(g){ groupsById[g.id]=g.name; });
       Store.getTopLevel().forEach(function(it){
-        rows.push([it.title, it.date, groupsById[it.groupId]||"", encodeAssigneeNames(it.assignees), it.priority, STATUS_LABEL[it.status]||it.status, it.notes||"", ""]);
+        rows.push([it.title, it.date, groupsById[effectiveGroupId(it)]||"", encodeAssigneeNames(it.assignees), it.priority, STATUS_LABEL[it.status]||it.status, it.notes||"", ""]);
         Store.getChildren(it.id).forEach(function(k){
-          rows.push([k.title, k.date, groupsById[it.groupId]||"", encodeAssigneeNames(k.assignees), k.priority, STATUS_LABEL[k.status]||k.status, k.notes||"", it.title]);
+          rows.push([k.title, k.date, groupsById[effectiveGroupId(k)]||"", encodeAssigneeNames(k.assignees), k.priority, STATUS_LABEL[k.status]||k.status, k.notes||"", it.title]);
         });
       });
       return rows;
@@ -2792,6 +3150,32 @@
     }
 
     function exportXlsx(){ writeWorkbook(exportRows(), "Items", "gov-to-do-export.xlsx"); }
+
+    function exportJson(){
+      var payload = { format:"gov-to-do", version:1, exportedAt:new Date().toISOString(), data:Store._snapshot() };
+      var blob = new Blob([JSON.stringify(payload, null, 2)], {type:"application/json"});
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url; a.download = "gov-to-do-backup-" + localISO() + ".json";
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+    }
+
+    function importJsonFile(file, cb){
+      var reader = new FileReader();
+      reader.onload = function(){
+        try{
+          var parsed = JSON.parse(reader.result);
+          if(!parsed || parsed.format!=="gov-to-do" || !parsed.data || !parsed.data.items){
+            throw new Error("That doesn't look like a Gov To Do backup file.");
+          }
+          Store._replaceAll(parsed.data, "Restored from backup");
+          cb(null);
+        }catch(err){ cb(err); }
+      };
+      reader.onerror = function(){ cb(new Error("Couldn't read that file.")); };
+      reader.readAsText(file);
+    }
 
     function downloadTemplate(kind){
       if(kind==="people"){
@@ -2820,6 +3204,7 @@
 
     return {
       parseFileRaw:parseFileRaw, applyImport:applyImport, applyPeopleImport:applyPeopleImport, exportXlsx:exportXlsx, downloadTemplate:downloadTemplate,
+      exportJson:exportJson, importJsonFile:importJsonFile,
       _internal: { rowsToImportRecords:rowsToImportRecords, rowsToPeopleRecords:rowsToPeopleRecords, resolveImport:resolveImport, resolvePeopleImport:resolvePeopleImport, parseAssigneeNames:parseAssigneeNames, encodeAssigneeNames:encodeAssigneeNames, normStatus:normStatus, normPriority:normPriority, exportRows:exportRows }
     };
   })();
@@ -2882,7 +3267,9 @@
         var destroyCount = importKind==="people" ? Store.getStaff().length : Store.getAllItems().length;
         var destroyNoun = importKind==="people" ? ("person"+(destroyCount===1?"":"s")) : ("item"+(destroyCount===1?"":"s"));
         var replaceLabel = (importKind==="people"?"Replace the people list":"Replace everything currently in the app")
-          + ' <span style="color:var(--ink-faint);">('+destroyCount+' existing '+destroyNoun+' will be deleted)</span>';
+          + ' <span style="color:var(--ink-faint);">('+destroyCount+' existing '+destroyNoun+' will be deleted'
+          + (importKind==="people" ? "" : ", and assignment/completion times will be lost — use a JSON backup to restore data")
+          + ')</span>';
         confirmArea.innerHTML =
           '<div class="field"><label>What should this do?</label>'
           + '<label class="import-radio"><input type="radio" name="import-mode" value="append" checked> Add to what\'s already here</label>'
@@ -3132,7 +3519,9 @@
       + '<button type="button" class="settings-row" data-settings-action="categories">Manage categories</button>'
       + '<div class="settings-sep"></div>'
       + '<button type="button" class="settings-row" data-settings-action="import">Import data...</button>'
-      + '<button type="button" class="settings-row" data-settings-action="export">Export data</button>'
+      + '<button type="button" class="settings-row" data-settings-action="export">Export report (Excel)</button>'
+      + '<button type="button" class="settings-row" data-settings-action="export-json">Export backup (JSON)</button>'
+      + '<button type="button" class="settings-row" data-settings-action="import-json">Restore from backup...</button>'
       + '<div class="settings-sep"></div>'
       + '<button type="button" class="settings-row" data-settings-action="sync"><span class="sync-dot-inline' + (connected?" connected":"") + '" id="settings-sync-dot"></span>Google Sheets sync<span class="settings-row-sub" id="settings-sync-label">' + (connected?"Connected":"Not connected") + '</span></button>'
       + '</div>';
@@ -3143,9 +3532,21 @@
     popoverRoot.querySelector('[data-settings-action="categories"]').onclick = function(){ closePopover(); openCategoriesPanel(); };
     popoverRoot.querySelector('[data-settings-action="import"]').onclick = function(){ closePopover(); openImportPanel(); };
     popoverRoot.querySelector('[data-settings-action="export"]').onclick = function(){ closePopover(); ImportExport.exportXlsx(); };
+    popoverRoot.querySelector('[data-settings-action="export-json"]').onclick = function(){ closePopover(); ImportExport.exportJson(); };
+    popoverRoot.querySelector('[data-settings-action="import-json"]').onclick = function(){ closePopover(); document.getElementById("restore-json-input").click(); };
     popoverRoot.querySelector('[data-settings-action="sync"]').onclick = function(){ closePopover(); openSyncPanel(); };
   }
   document.getElementById("settings-btn").addEventListener("click", function(e){ openSettingsPopover(e.currentTarget); });
+  document.getElementById("restore-json-input").addEventListener("change", function(e){
+    var file = e.target.files[0];
+    e.target.value = "";
+    if(!file) return;
+    ImportExport.importJsonFile(file, function(err){
+      if(err){ showToast(err.message || "Couldn't restore that backup.", "err"); return; }
+      renderAll();
+      showUndoToast("Restored from backup");
+    });
+  });
 
   document.getElementById("stat-strip").addEventListener("click", function(e){
     var pill = e.target.closest("[data-goto-filter]");
@@ -3216,7 +3617,44 @@
       var name = Store.deleteStaff(rm.getAttribute("data-remove-staff"));
       renderAll();
       showUndoToast("Removed " + name);
+      return;
     }
+    var card = e.target.closest("[data-person-card]");
+    if(card){ filterListByPerson(card.getAttribute("data-person-card")); }
+  });
+  document.getElementById("staff-grid").addEventListener("keydown", function(e){
+    if(e.key!=="Enter" && e.key!==" ") return;
+    if(e.target.closest("#add-staff-btn") || e.target.closest("[data-remove-staff]")) return;
+    var card = e.target.closest("[data-person-card]");
+    if(card){ e.preventDefault(); filterListByPerson(card.getAttribute("data-person-card")); }
+  });
+
+  document.getElementById("team-view-cards-btn").addEventListener("click", function(){
+    state.teamView = "cards"; saveViewState(); renderTeam();
+  });
+  document.getElementById("team-view-table-btn").addEventListener("click", function(){
+    state.teamView = "table"; saveViewState(); renderTeam();
+  });
+  document.getElementById("team-group-filter").addEventListener("change", function(e){
+    state.teamGroupFilter = e.target.value || null; saveViewState(); renderTeam();
+  });
+  document.getElementById("team-table-wrap").addEventListener("click", function(e){
+    var th = e.target.closest("[data-sort-key]");
+    if(th){
+      var key = th.getAttribute("data-sort-key");
+      if(state.teamSort === key){ state.teamSortDir = state.teamSortDir==="asc" ? "desc" : "asc"; }
+      else { state.teamSort = key; state.teamSortDir = (key==="name" || key==="dept") ? "asc" : "desc"; }
+      saveViewState();
+      renderTeamTable();
+      return;
+    }
+    var row = e.target.closest("[data-person-row]");
+    if(row){ filterListByPerson(row.getAttribute("data-person-row")); }
+  });
+  document.getElementById("team-table-wrap").addEventListener("keydown", function(e){
+    if(e.key!=="Enter" && e.key!==" ") return;
+    var row = e.target.closest("[data-person-row]");
+    if(row){ e.preventDefault(); filterListByPerson(row.getAttribute("data-person-row")); }
   });
 
   backdropEl.addEventListener("click", function(){ closeDetail(); closeCreatePanel(); closeSyncPanel(); closeImportPanel(); closeCategoriesPanel(); closePalette(); });
@@ -3290,11 +3728,17 @@
     if(!saved) return;
     state.rail = saved.rail || "all";
     state.tableFilter = saved.filter || "all";
+    state.teamView = saved.teamView==="table" ? "table" : "cards";
+    state.teamSort = saved.teamSort || "total";
+    state.teamSortDir = saved.teamSortDir==="asc" ? "asc" : "desc";
+    state.teamGroupFilter = saved.teamGroupFilter || null;
+    state.personFilter = (saved.personFilter && Store.getStaffById(saved.personFilter)) ? saved.personFilter : null;
     document.querySelectorAll(".chip").forEach(function(c){ c.classList.toggle("active", c.getAttribute("data-filter")===state.tableFilter); });
     var isList = (state.rail!=="overview" && state.rail!=="team");
     document.getElementById("pane-list").classList.toggle("active", isList);
     document.getElementById("pane-overview").classList.toggle("active", state.rail==="overview");
     document.getElementById("pane-team").classList.toggle("active", state.rail==="team");
+    renderPersonFilterChip();
   }
 
     applyTheme(currentThemeMode());
