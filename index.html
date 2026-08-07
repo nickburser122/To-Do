@@ -243,7 +243,9 @@
   .tag-todo{ background:var(--surface-2); color:var(--ink-soft); }
   .tag-in_progress{ background:var(--warn-soft); color:var(--warn); }
   .tag-done{ background:var(--ok-soft); color:var(--ok); }
-  .tag-group{ background:var(--accent-soft); color:var(--accent-ink); }
+  .tag-group{ background:var(--line-soft); color:var(--ink-soft); gap:5px; }
+  .tag-group-dot{ width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+  .tag-group-more{ background:transparent; color:var(--ink-faint); }
   .empty-col{ font-size:13px; color:var(--ink-faint); text-align:center; }
   .empty-col-first-run{ padding:56px 20px; }
   .empty-col-title{ font-size:15px; font-weight:600; color:var(--ink); margin-bottom:6px; }
@@ -279,6 +281,7 @@
   .staff-card{ background:var(--bg-raised); border:1px solid var(--line); border-radius:var(--radius); padding:16px; position:relative; cursor:pointer; }
   .staff-card:hover{ border-color:var(--ink-faint); }
   .staff-card-head{ display:flex; align-items:center; gap:10px; }
+  .staff-card-tags{ display:flex; flex-wrap:wrap; gap:5px; margin:10px 0 2px; }
   .staff-name{ font-weight:600; font-size:14px; }
   .staff-dept{ font-size:11px; color:var(--ink-faint); }
   .staff-remove{ position:absolute; top:12px; inset-inline-end:12px; border:none; background:transparent; color:var(--ink-faint); font-size:14px; }
@@ -302,9 +305,6 @@
   .progress-fill{ height:100%; background:var(--ok); }
   .staff-items{ display:flex; flex-direction:column; gap:5px; max-height:110px; overflow-y:auto; }
   .staff-item-row{ font-size:11.5px; color:var(--ink-soft); display:flex; gap:6px; align-items:center; }
-  .status-dot-mini{ width:7px; height:7px; border-radius:50%; flex-shrink:0; background:var(--ink-faint); }
-  .status-dot-mini.in_progress{ background:var(--warn); }
-  .status-dot-mini.done{ background:var(--ok); }
   .add-tile{ background:transparent; border:1.5px dashed var(--line); border-radius:var(--radius); display:flex; align-items:center; justify-content:center; min-height:120px; color:var(--ink-faint); font-size:13px; font-weight:500; }
   .add-tile:hover{ border-color:var(--brass); color:var(--brass-ink); }
   .mini-form{ background:var(--bg-raised); border:1px solid var(--line); border-radius:var(--radius); padding:16px; }
@@ -329,6 +329,7 @@
   .field-row .field{ flex:1; }
   .assignee-list{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; }
   .assignee-chip{ display:flex; align-items:center; gap:5px; background:var(--line-soft); border-radius:20px; padding:3px 5px 3px 4px; font-size:11.5px; }
+  .assignee-chip-date{ color:var(--ink-faint); font-size:10.5px; }
   .assignee-chip button{ border:none; background:transparent; font-size:12px; line-height:1; padding:2px; }
   .star-toggle-btn{ color:var(--ink-faint); }
   .star-toggle-btn.is-lead{ color:var(--brass-ink); }
@@ -975,6 +976,13 @@
     var months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
     return months[d.getMonth()] + " " + d.getDate() + ", " + d.getFullYear();
   }
+  function fmtDateShort(iso){
+    if(!iso) return "";
+    var d = new Date(iso + "T00:00:00");
+    if(isNaN(d.getTime())) return "";
+    var months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    return months[d.getMonth()] + " " + d.getDate();
+  }
   function localISO(d){
     d = d || new Date();
     var y = d.getFullYear(), m = d.getMonth()+1, day = d.getDate();
@@ -1230,9 +1238,14 @@
       var kOv = isOverdue(k);
       return [k.id,k.title,k.status,k.priority,k.date,kOv?1:0,k.assignees.map(function(a){return a.staffId;}).join(",")].join("~");
     }).join(";");
+    var groupSig = "";
+    if(showGroupTag){
+      var tg = Store.getGroupById(item.groupId);
+      groupSig = (groupsById[item.groupId]||"Unfiled") + (tg?tg.color:"");
+    }
     return [
       todayISO(), item.title, item.priority, item.date, eff, overdue?1:0, expanded?1:0,
-      state.selected[item.id]?1:0, showGroupTag?(groupsById[item.groupId]||"Unfiled"):"",
+      state.selected[item.id]?1:0, groupSig,
       assigneeSig, kidsSig
     ].join("§");
   }
@@ -1385,7 +1398,10 @@
     }
     html += '<span class="row-title'+(eff==="done"?" done":"")+'" dir="auto">'+esc(item.title||"Untitled")+'</span>';
     html += priorityPillHtml(item.priority);
-    if(showGroupTag) html += '<span class="tag tag-group" dir="auto">'+esc(groupsById[item.groupId]||"Unfiled")+'</span>';
+    if(showGroupTag){
+      var tagGroup = Store.getGroupById(item.groupId);
+      html += '<span class="tag tag-group" dir="auto">'+(tagGroup?'<span class="tag-group-dot" style="background:'+tagGroup.color+'"></span>':'')+esc(groupsById[item.groupId]||"Unfiled")+'</span>';
+    }
     html += '<span class="avatars">'+item.assignees.map(function(a){ return assigneeAvatarHtml(a,true); }).join("")+'</span>';
     html += '<span class="row-date'+(overdue?" overdue":"")+'" title="'+fmtDate(item.date)+'">'+relDate(item)+'</span>';
     html += '</div>';
@@ -1637,6 +1653,34 @@
     if(isTable) renderTeamTable(); else renderStaffCards();
   }
 
+  function personCategoryTagsHtml(assigned){
+    if(state.teamGroupFilter) return "";
+    var counts = {};
+    assigned.forEach(function(it){
+      var gid = effectiveGroupId(it) || "";
+      counts[gid] = (counts[gid]||0) + 1;
+    });
+    var keys = Object.keys(counts);
+    if(!keys.length) return "";
+    keys.sort(function(a,b){ return counts[b]-counts[a]; });
+    var MAX_TAGS = 3;
+    var shown = keys.slice(0, MAX_TAGS);
+    var extra = keys.length - shown.length;
+    var html = '<div class="staff-card-tags">';
+    shown.forEach(function(gid){
+      if(gid===""){
+        html += '<span class="tag tag-group">Unfiled</span>';
+      } else {
+        var g = Store.getGroupById(gid);
+        if(!g) return;
+        html += '<span class="tag tag-group" dir="auto"><span class="tag-group-dot" style="background:'+g.color+'"></span>'+esc(g.name)+'</span>';
+      }
+    });
+    if(extra>0) html += '<span class="tag tag-group-more">+'+extra+'</span>';
+    html += '</div>';
+    return html;
+  }
+
   function renderStaffCards(){
     var container = document.getElementById("staff-grid");
     var staff = Store.getStaff();
@@ -1645,7 +1689,10 @@
     var html = "";
     staff.forEach(function(person){
       var st = stats.get(person.id) || {total:0,open:0,inProgress:0,done:0,overdue:0,criticalOpen:0,lead:0,sample:0,medianMs:null};
-      var assigned = allItems.filter(function(it){ return it.assignees.some(function(a){ return a.staffId===person.id; }); });
+      var assigned = allItems.filter(function(it){
+        if(state.teamGroupFilter && effectiveGroupId(it) !== state.teamGroupFilter) return false;
+        return it.assignees.some(function(a){ return a.staffId===person.id; });
+      });
       var pct = st.total ? Math.round((st.done/st.total)*100) : 0;
       var turnaroundHtml = st.sample
         ? formatDuration(st.medianMs) + ' <span class="stat-num-sample">(n='+st.sample+')</span>'
@@ -1654,6 +1701,7 @@
       html += '<div class="staff-card" data-person-card="'+person.id+'" tabindex="0">';
       html += '<button class="staff-remove" data-remove-staff="'+person.id+'" title="Remove">&times;</button>';
       html += '<div class="staff-card-head">'+personRoundelHtml(person.id)+'<div><div class="staff-name" dir="auto">'+esc(person.name)+'</div><div class="staff-dept" dir="auto">'+esc(person.dept)+'</div></div></div>';
+      html += personCategoryTagsHtml(assigned);
       html += '<div class="staff-stats">';
       html += '<div><div class="stat-num">'+st.total+'</div><div class="stat-label">Total assigned</div></div>';
       html += '<div><div class="stat-num">'+st.open+'</div><div class="stat-label">Open</div></div>';
@@ -1664,7 +1712,7 @@
       html += '<div class="progress-bar"><div class="progress-fill" style="width:'+pct+'%"></div></div>';
       html += '<div class="staff-items">';
       if(assigned.length===0){ html += '<div class="staff-item-row">Nothing assigned yet</div>'; }
-      else { assigned.forEach(function(it){ html += '<div class="staff-item-row"><span class="status-dot-mini '+effectiveStatus(it)+'"></span><span dir="auto">'+esc(it.title||"Untitled")+'</span></div>'; }); }
+      else { assigned.forEach(function(it){ var eff=effectiveStatus(it); html += '<div class="staff-item-row"><span class="tag tag-'+eff+'">'+esc(STATUS_LABEL[eff]||eff)+'</span><span dir="auto">'+esc(it.title||"Untitled")+'</span></div>'; }); }
       html += '</div></div>';
     });
     html += '<button class="add-tile" id="add-staff-btn">+ Add person</button>';
@@ -1928,7 +1976,16 @@
     var html = '<div class="assignee-list">';
     item.assignees.forEach(function(a){
       var s = Store.getStaffById(a.staffId);
-      html += '<span class="assignee-chip">'+assigneeAvatarHtml(a,true)+'<span dir="auto">'+esc(s?s.name:"?")+'</span>';
+      var assignedTitle = "", assignedInline = "";
+      if(a.assignedAt){
+        var d = new Date(a.assignedAt);
+        if(!isNaN(d.getTime())){
+          var localDateStr = localISO(d);
+          assignedTitle = ' title="Assigned '+esc(fmtDate(localDateStr))+'"';
+          assignedInline = '<span class="assignee-chip-date">'+esc(fmtDateShort(localDateStr))+'</span>';
+        }
+      }
+      html += '<span class="assignee-chip"'+assignedTitle+'>'+assigneeAvatarHtml(a,true)+'<span dir="auto">'+esc(s?s.name:"?")+'</span>'+assignedInline;
       html += '<button class="star-toggle-btn'+(a.isLead?" is-lead":"")+'" data-toggle-lead="'+itemId+'|'+a.staffId+'" title="'+(a.isLead?"Remove lead":"Mark as lead")+'">'+(a.isLead?"&#9733;":"&#9734;")+'</button>';
       html += '<button class="remove-assignee-btn" data-remove-assignee="'+itemId+'|'+a.staffId+'">&times;</button></span>';
     });
