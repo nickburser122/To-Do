@@ -988,6 +988,11 @@
   }
   function todayISO(){ return localISO(new Date()); }
   function nowISO(){ return new Date().toISOString(); }
+  function localDateToInstant(dateStr){
+    if(!dateStr) return null;
+    var d = new Date(dateStr+"T12:00:00");
+    return isNaN(d.getTime()) ? null : d.toISOString();
+  }
 
   var effStatusCache = null;
   var effStatusCacheVersion = -1;
@@ -2213,18 +2218,19 @@
     renderAll();
   }
 
-  function openDatePickerFor(triggerEl){
+  function openDatePickerFor(triggerEl, applyFn){
     var itemId = triggerEl.getAttribute("data-datepicker");
     var iso = triggerEl.getAttribute("data-value");
     var base = iso ? new Date(iso+"T00:00:00") : new Date();
     dpYear = base.getFullYear(); dpMonth = base.getMonth();
-    renderDatePickerPanel(triggerEl, itemId, iso);
+    var apply = applyFn || function(newIso){ Store.updateItem(itemId, {date:newIso||""}); renderAll(); };
+    renderDatePickerPanel(triggerEl, iso, apply);
     popoverRoot.classList.add("show");
     positionPopover(triggerEl, 230);
     openTrigger = triggerEl;
   }
 
-  function renderDatePickerPanel(triggerEl, itemId, selectedIso){
+  function renderDatePickerPanel(triggerEl, selectedIso, applyFn){
     var monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
     var startWeekday = new Date(dpYear, dpMonth, 1).getDay();
     var daysInMonth = new Date(dpYear, dpMonth+1, 0).getDate();
@@ -2251,26 +2257,24 @@
         dpMonth += parseInt(btn.getAttribute("data-dp-nav"),10);
         if(dpMonth<0){ dpMonth=11; dpYear--; }
         if(dpMonth>11){ dpMonth=0; dpYear++; }
-        renderDatePickerPanel(triggerEl, itemId, selectedIso);
+        renderDatePickerPanel(triggerEl, selectedIso, applyFn);
       };
     });
     popoverRoot.querySelectorAll("[data-dp-day]").forEach(function(btn){
       btn.onclick = function(){
         var iso = btn.getAttribute("data-dp-day");
-        Store.updateItem(itemId, {date:iso});
         triggerEl.setAttribute("data-value", iso);
         var lbl = triggerEl.querySelector(".cselect-label"); if(lbl) lbl.textContent = fmtDate(iso);
         closePopover();
-        renderAll();
+        applyFn(iso);
       };
     });
     var clearBtn = popoverRoot.querySelector("[data-dp-clear]");
     clearBtn.onclick = function(){
-      Store.updateItem(itemId, {date:""});
       triggerEl.setAttribute("data-value", "");
       var lbl = triggerEl.querySelector(".cselect-label"); if(lbl) lbl.textContent = "Set date";
       closePopover();
-      renderAll();
+      applyFn(null);
     };
   }
 
@@ -2366,7 +2370,7 @@
 
   function openCreatePanel(){
     var defaultGroupId = (state.rail!=="all" && state.rail!=="overview" && state.rail!=="team") ? state.rail : (Store.getGroups()[0] ? Store.getGroups()[0].id : null);
-    createDraft = { title:"", groupId:defaultGroupId, priority:"medium", assignees:[], branches:[], date:null, dateSuggestion:null, dismissedSuggestionKey:null };
+    createDraft = { title:"", groupId:defaultGroupId, priority:"medium", assignees:[], branches:[], date:null, dateSuggestion:null, dismissedSuggestionKey:null, assignedDate:todayISO() };
     buildCreatePanel();
     createPanelEl.classList.add("show");
     backdropEl.classList.add("show");
@@ -2431,6 +2435,7 @@
     html += '</div></div>';
 
     html += '<div class="field"><label>Assigned to</label><div class="avatar-pick-row">'+staffAvatarPickHtml(createDraft.assignees)+'</div></div>';
+    html += '<div class="field"><label>Assigned on</label><button type="button" class="cselect-trigger date-trigger" id="c-assigned-date-trigger" data-value="'+esc(createDraft.assignedDate||"")+'"><span class="cselect-label">'+(createDraft.assignedDate?fmtDate(createDraft.assignedDate):"Set date")+'</span>'+CHEVRON_SVG+'</button></div>';
 
     html += '<div class="section-title">Branches <span style="font-weight:500;">'+createDraft.branches.length+'</span></div>';
     html += '<div id="c-branch-list">';
@@ -2474,6 +2479,13 @@
   function wireCreatePanelEvents(){
     document.getElementById("create-close-btn").onclick = closeCreatePanel;
     document.getElementById("create-cancel-btn").onclick = closeCreatePanel;
+    document.getElementById("c-assigned-date-trigger").addEventListener("click", function(e){
+      openDatePickerFor(e.currentTarget, function(iso){
+        createDraft.assignedDate = iso;
+        buildCreatePanel();
+        refocusCreateTitle();
+      });
+    });
     document.getElementById("c-title").addEventListener("input", function(e){
       var val = e.target.value;
       createDraft.title = val;
@@ -2545,17 +2557,21 @@
 
   function submitCreate(keepOpen){
     if(!createDraft.title.trim()){ document.getElementById("c-title").focus(); return; }
-    var patch = { title:createDraft.title.trim(), groupId:createDraft.groupId, priority:createDraft.priority, assignees:createDraft.assignees.slice() };
+    var assignedInstant = createDraft.assignedDate ? localDateToInstant(createDraft.assignedDate) : null;
+    var stampAssignees = function(list){
+      return list.map(function(a){ return assignedInstant ? Object.assign({}, a, {assignedAt:assignedInstant}) : a; });
+    };
+    var patch = { title:createDraft.title.trim(), groupId:createDraft.groupId, priority:createDraft.priority, assignees:stampAssignees(createDraft.assignees) };
     if(createDraft.date) patch.date = createDraft.date;
     var parent = Store.createItem(patch);
     createDraft.branches.forEach(function(b){
       if(!b.title.trim()) return;
-      Store.createItem({ parentId:parent.id, groupId:createDraft.groupId, title:b.title.trim(), priority:createDraft.priority, status:"todo", assignees:b.assignees.slice() });
+      Store.createItem({ parentId:parent.id, groupId:createDraft.groupId, title:b.title.trim(), priority:createDraft.priority, status:"todo", assignees:stampAssignees(b.assignees) });
     });
     renderAll();
     if(keepOpen){
       var groupId = createDraft.groupId;
-      createDraft = { title:"", groupId:groupId, priority:"medium", assignees:[], branches:[], date:null, dateSuggestion:null, dismissedSuggestionKey:null };
+      createDraft = { title:"", groupId:groupId, priority:"medium", assignees:[], branches:[], date:null, dateSuggestion:null, dismissedSuggestionKey:null, assignedDate:todayISO() };
       buildCreatePanel();
       refocusCreateTitle();
     } else {
