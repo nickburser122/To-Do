@@ -264,7 +264,7 @@
   .view-toggle-btn{ background:transparent; border:none; color:var(--ink-faint); padding:7px 10px; display:flex; align-items:center; justify-content:center; }
   .view-toggle-btn:hover{ background:var(--line-soft); color:var(--ink); }
   .view-toggle-btn[aria-pressed="true"]{ background:var(--accent-soft); color:var(--accent-ink); }
-  .team-group-select{ border:1px solid var(--line); border-radius:11px; padding:7px 30px 7px 12px; background:var(--bg-raised); color:var(--ink); font-size:12.5px; }
+  .team-filter-trigger{ width:auto; gap:8px; }
   .team-table-scroll{ overflow-x:auto; border:1px solid var(--line); border-radius:var(--radius); background:var(--bg-raised); }
   .team-table{ width:100%; border-collapse:collapse; font-size:12.5px; }
   .team-table th, .team-table td{ padding:10px 14px; text-align:start; border-bottom:1px solid var(--hairline); white-space:nowrap; }
@@ -550,9 +550,7 @@
           <button type="button" class="view-toggle-btn" id="team-view-cards-btn" title="Cards" aria-pressed="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></button>
           <button type="button" class="view-toggle-btn" id="team-view-table-btn" title="Table" aria-pressed="false"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="1.5"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="9" y1="10" x2="9" y2="20"/></svg></button>
         </div>
-        <select id="team-group-filter" class="team-group-select">
-          <option value="">All categories</option>
-        </select>
+        <div id="team-group-filter-wrap" class="team-group-filter-wrap"></div>
       </div>
       <div class="staff-grid" id="staff-grid"></div>
       <div id="team-table-wrap" style="display:none;"></div>
@@ -1631,18 +1629,38 @@
     return byStaff;
   }
 
-  function populateTeamGroupFilter(){
-    var sel = document.getElementById("team-group-filter");
-    if(!sel) return;
+  function renderTeamGroupFilterTrigger(){
+    var wrap = document.getElementById("team-group-filter-wrap");
+    if(!wrap) return;
+    var g = state.teamGroupFilter ? Store.getGroupById(state.teamGroupFilter) : null;
+    var label = g ? g.name : "All categories";
+    var dot = g ? '<span class="tag-group-dot" style="background:'+g.color+';"></span>' : '';
+    wrap.innerHTML = '<button type="button" class="cselect-trigger team-filter-trigger" id="team-group-filter-trigger">'
+      + dot + '<span class="cselect-label" dir="auto">'+esc(label)+'</span>'+CHEVRON_SVG+'</button>';
+  }
+  function openTeamGroupFilterPopover(triggerEl){
     var current = state.teamGroupFilter || "";
-    var html = '<option value="">All categories</option>';
-    Store.getGroups().forEach(function(g){ html += '<option value="'+esc(g.id)+'">'+esc(g.name)+'</option>'; });
-    sel.innerHTML = html;
-    sel.value = current;
+    var opts = [{id:"", name:"All categories", color:null}].concat(Store.getGroups());
+    var html = '<div class="cselect-panel">' + opts.map(function(g){
+      var dot = g.color ? '<span class="tag-group-dot" style="background:'+g.color+';"></span>' : '';
+      return '<button type="button" class="cselect-opt'+(g.id===current?" selected":"")+'" data-team-filter-opt="'+esc(g.id)+'">'+dot+'<span dir="auto">'+esc(g.name)+'</span></button>';
+    }).join("") + '</div>';
+    popoverRoot.innerHTML = html;
+    popoverRoot.classList.add("show");
+    positionPopover(triggerEl, 200);
+    openTrigger = triggerEl;
+    popoverRoot.querySelectorAll("[data-team-filter-opt]").forEach(function(btn){
+      btn.onclick = function(){
+        state.teamGroupFilter = btn.getAttribute("data-team-filter-opt") || null;
+        saveViewState();
+        closePopover();
+        renderTeam();
+      };
+    });
   }
 
   function renderTeam(){
-    populateTeamGroupFilter();
+    renderTeamGroupFilterTrigger();
     var cardsEl = document.getElementById("staff-grid");
     var tableEl = document.getElementById("team-table-wrap");
     var isTable = state.teamView === "table";
@@ -3692,8 +3710,9 @@
   document.getElementById("team-view-table-btn").addEventListener("click", function(){
     state.teamView = "table"; saveViewState(); renderTeam();
   });
-  document.getElementById("team-group-filter").addEventListener("change", function(e){
-    state.teamGroupFilter = e.target.value || null; saveViewState(); renderTeam();
+  document.getElementById("team-group-filter-wrap").addEventListener("click", function(e){
+    var trigger = e.target.closest("#team-group-filter-trigger");
+    if(trigger) openTeamGroupFilterPopover(trigger);
   });
   document.getElementById("team-table-wrap").addEventListener("click", function(e){
     var th = e.target.closest("[data-sort-key]");
