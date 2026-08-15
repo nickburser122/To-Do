@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Gov To Do</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjQwNSA1NCA2NDYgNjQ2IiB3aWR0aD0iMjU2IiBoZWlnaHQ9IjI1NiI+CiAgPHBhdGggZD0iTTcyOCA5NCBDNjI0IDk0IDU0OCAxMDggNTA2IDE0MCBDNDkyIDE1MSA0ODkgMTY4IDQ4OSAxOTQgVjQwNyBDNDg5IDUxNiA1NjEgNjA0IDY3NSA2NTIgQzcwNiA2NjUgNzE4IDY1OCA3MjggNjU0IEM3MzggNjU4IDc1MCA2NjUgNzgxIDY1MiBDODk1IDYwNCA5NjcgNTE2IDk2NyA0MDcgVjE5NCBDOTY3IDE2OCA5NjQgMTUxIDk1MCAxNDAgQzkwOCAxMDggODMyIDk0IDcyOCA5NFoiIGZpbGw9IiM2RjY1NUYiLz4KICA8cGF0aCBkPSJNNjU1IDQ3NyBMNzExIDUzMiBMODI3IDQxNSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjRjdGNUYxIiBzdHJva2Utd2lkdGg9IjQyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9zdmc+Cg==">
 <style>
   :root{
     --bg: #F7F5F1;
@@ -96,7 +97,7 @@
     -webkit-backdrop-filter:saturate(180%) blur(24px); backdrop-filter:saturate(180%) blur(24px);
   }
   .rail-brand{ display:flex; align-items:center; gap:9px; padding:2px 8px 18px; }
-  .rail-brand-mark{ width:32px; height:32px; border-radius:11px; background:var(--accent); color:#fff; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
+  .rail-brand-mark{ width:38px; height:38px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
   .rail-brand-text{ font-size:13px; font-weight:700; line-height:1.2; }
   .rail-brand-sub{ font-size:11px; color:var(--ink-faint); }
   .rail-tab{
@@ -243,9 +244,7 @@
   .tag-todo{ background:var(--surface-2); color:var(--ink-soft); }
   .tag-in_progress{ background:var(--warn-soft); color:var(--warn); }
   .tag-done{ background:var(--ok-soft); color:var(--ok); }
-  .tag-group{ background:var(--line-soft); color:var(--ink-soft); gap:5px; }
-  .tag-group-dot{ width:7px; height:7px; border-radius:50%; flex-shrink:0; }
-  .tag-group-more{ background:transparent; color:var(--ink-faint); }
+  .tag-group{ background:var(--accent-soft); color:var(--accent-ink); }
   .empty-col{ font-size:13px; color:var(--ink-faint); text-align:center; }
   .empty-col-first-run{ padding:56px 20px; }
   .empty-col-title{ font-size:15px; font-weight:600; color:var(--ink); margin-bottom:6px; }
@@ -264,7 +263,7 @@
   .view-toggle-btn{ background:transparent; border:none; color:var(--ink-faint); padding:7px 10px; display:flex; align-items:center; justify-content:center; }
   .view-toggle-btn:hover{ background:var(--line-soft); color:var(--ink); }
   .view-toggle-btn[aria-pressed="true"]{ background:var(--accent-soft); color:var(--accent-ink); }
-  .team-filter-trigger{ width:auto; gap:8px; }
+  .team-group-select{ border:1px solid var(--line); border-radius:11px; padding:7px 30px 7px 12px; background:var(--bg-raised); color:var(--ink); font-size:12.5px; }
   .team-table-scroll{ overflow-x:auto; border:1px solid var(--line); border-radius:var(--radius); background:var(--bg-raised); }
   .team-table{ width:100%; border-collapse:collapse; font-size:12.5px; }
   .team-table th, .team-table td{ padding:10px 14px; text-align:start; border-bottom:1px solid var(--hairline); white-space:nowrap; }
@@ -281,7 +280,6 @@
   .staff-card{ background:var(--bg-raised); border:1px solid var(--line); border-radius:var(--radius); padding:16px; position:relative; cursor:pointer; }
   .staff-card:hover{ border-color:var(--ink-faint); }
   .staff-card-head{ display:flex; align-items:center; gap:10px; }
-  .staff-card-tags{ display:flex; flex-wrap:wrap; gap:5px; margin:10px 0 2px; }
   .staff-name{ font-weight:600; font-size:14px; }
   .staff-dept{ font-size:11px; color:var(--ink-faint); }
   .staff-remove{ position:absolute; top:12px; inset-inline-end:12px; border:none; background:transparent; color:var(--ink-faint); font-size:14px; }
@@ -305,6 +303,9 @@
   .progress-fill{ height:100%; background:var(--ok); }
   .staff-items{ display:flex; flex-direction:column; gap:5px; max-height:110px; overflow-y:auto; }
   .staff-item-row{ font-size:11.5px; color:var(--ink-soft); display:flex; gap:6px; align-items:center; }
+  .status-dot-mini{ width:7px; height:7px; border-radius:50%; flex-shrink:0; background:var(--ink-faint); }
+  .status-dot-mini.in_progress{ background:var(--warn); }
+  .status-dot-mini.done{ background:var(--ok); }
   .add-tile{ background:transparent; border:1.5px dashed var(--line); border-radius:var(--radius); display:flex; align-items:center; justify-content:center; min-height:120px; color:var(--ink-faint); font-size:13px; font-weight:500; }
   .add-tile:hover{ border-color:var(--brass); color:var(--brass-ink); }
   .mini-form{ background:var(--bg-raised); border:1px solid var(--line); border-radius:var(--radius); padding:16px; }
@@ -330,7 +331,6 @@
   .assignee-list{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; }
   .assignee-chip{ display:flex; align-items:center; gap:5px; background:var(--line-soft); border-radius:20px; padding:3px 5px 3px 4px; font-size:11.5px; }
   .assignee-chip button{ border:none; background:transparent; font-size:12px; line-height:1; padding:2px; }
-  .turnaround-value{ border:1px solid transparent; border-radius:11px; padding:8px 0; font-size:13px; color:var(--ink-faint); }
   .star-toggle-btn{ color:var(--ink-faint); }
   .star-toggle-btn.is-lead{ color:var(--brass-ink); }
   .star-toggle-btn:hover{ color:var(--brass-ink); }
@@ -494,7 +494,7 @@
 <div class="shell">
   <nav class="rail" id="rail">
     <div class="rail-brand">
-      <div class="rail-brand-mark"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.75"><polyline points="4 13 9.5 18.5 20 6"/></svg></div>
+      <div class="rail-brand-mark"><svg width="38" height="38" viewBox="405 54 646 646" fill="none"><path d="M728 94 C624 94 548 108 506 140 C492 151 489 168 489 194 V407 C489 516 561 604 675 652 C706 665 718 658 728 654 C738 658 750 665 781 652 C895 604 967 516 967 407 V194 C967 168 964 151 950 140 C908 108 832 94 728 94Z" stroke="#6F655F" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><path d="M728 120 C646 120 575 132 536 158 C524 166 517 179 517 202 V404 C517 492 576 571 682 620 C706 631 718 634 728 630 C738 634 750 631 774 620 C880 571 939 492 939 404 V202 C939 179 932 166 920 158 C881 132 810 120 728 120Z" stroke="#6F655F" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><path d="M574 327 C574 278 593 232 626 201 C653 175 688 158 728 158 C768 158 803 175 830 201 C863 232 882 278 882 327 Z" stroke="#6F655F" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><path d="M666 247 C677 203 700 174 728 174 C756 174 779 203 790 247 C772 250 751 252 728 252 C705 252 684 250 666 247Z" stroke="#6F655F" stroke-width="6" stroke-linejoin="round"/><path d="M626 201 C647 187 672 178 694 173 C678 188 663 208 653 236 C641 232 630 228 618 223 C620 215 623 208 626 201Z" stroke="#6F655F" stroke-width="6" stroke-linejoin="round"/><path d="M830 201 C809 187 784 178 762 173 C778 188 793 208 803 236 C815 232 826 228 838 223 C836 215 833 208 830 201Z" stroke="#6F655F" stroke-width="6" stroke-linejoin="round"/><path d="M617 237 C629 242 642 246 657 249 C654 269 652 291 652 311 H591 C593 285 602 258 617 237Z" stroke="#6F655F" stroke-width="6" stroke-linejoin="round"/><path d="M667 254 C686 257 707 259 728 259 C749 259 770 257 789 254 C793 273 796 292 797 311 H659 C660 292 663 273 667 254Z" stroke="#6F655F" stroke-width="6" stroke-linejoin="round"/><path d="M839 237 C827 242 814 246 799 249 C802 269 804 291 804 311 H865 C863 285 854 258 839 237Z" stroke="#6F655F" stroke-width="6" stroke-linejoin="round"/><rect x="585" y="350" width="286" height="21" rx="10.5" stroke="#6F655F" stroke-width="6"/><path d="M655 477 L711 532 L827 415" stroke="#B56449" stroke-width="31" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       <div class="rail-brand-text">Gov To Do</div>
     </div>
     <div id="rail-tabs"></div>
@@ -550,7 +550,9 @@
           <button type="button" class="view-toggle-btn" id="team-view-cards-btn" title="Cards" aria-pressed="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></button>
           <button type="button" class="view-toggle-btn" id="team-view-table-btn" title="Table" aria-pressed="false"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="1.5"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="9" y1="10" x2="9" y2="20"/></svg></button>
         </div>
-        <div id="team-group-filter-wrap" class="team-group-filter-wrap"></div>
+        <select id="team-group-filter" class="team-group-select">
+          <option value="">All categories</option>
+        </select>
       </div>
       <div class="staff-grid" id="staff-grid"></div>
       <div id="team-table-wrap" style="display:none;"></div>
@@ -756,6 +758,8 @@
       indexBuiltAt = indexVersion;
     }
 
+    // stamp=true  -> live user action, a missing assignedAt means "just now"
+    // stamp=false -> rehydrating from storage/sheet/file, missing means "unknown"
     function normalizeAssignee(a, stamp){
       var t = (a.assignedAt===undefined || a.assignedAt===null)
         ? (stamp ? nowISO() : null)
@@ -906,9 +910,7 @@
       addAssignee: function(id, staffId){
         var item=this.getItem(id); if(!item) return;
         if(item.assignees.some(function(a){ return a.staffId===staffId; })) return;
-        var existing = item.assignees.filter(function(a){ return a.assignedAt; })[0];
-        var at = existing ? existing.assignedAt : nowISO();
-        item.assignees.push({ staffId:staffId, isLead:false, assignedAt:at }); persist();
+        item.assignees.push(normalizeAssignee({staffId:staffId, isLead:false}, true)); persist();
       },
       removeAssignee: function(id, staffId){
         var item=this.getItem(id); if(!item) return;
@@ -917,12 +919,6 @@
       toggleLead: function(id, staffId){
         var item=this.getItem(id); if(!item) return;
         item.assignees.forEach(function(a){ if(a.staffId===staffId) a.isLead=!a.isLead; }); persist();
-      },
-      updateAssignedDate: function(id, dateStr){
-        var item=this.getItem(id); if(!item) return;
-        var instant = dateStr ? localDateToInstant(dateStr) : null;
-        item.assignees.forEach(function(a){ a.assignedAt = instant; });
-        persist();
       },
 
       progressOf: function(id){
@@ -980,13 +976,6 @@
     var months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
     return months[d.getMonth()] + " " + d.getDate() + ", " + d.getFullYear();
   }
-  function fmtDateShort(iso){
-    if(!iso) return "";
-    var d = new Date(iso + "T00:00:00");
-    if(isNaN(d.getTime())) return "";
-    var months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-    return months[d.getMonth()] + " " + d.getDate();
-  }
   function localISO(d){
     d = d || new Date();
     var y = d.getFullYear(), m = d.getMonth()+1, day = d.getDate();
@@ -994,11 +983,6 @@
   }
   function todayISO(){ return localISO(new Date()); }
   function nowISO(){ return new Date().toISOString(); }
-  function localDateToInstant(dateStr){
-    if(!dateStr) return null;
-    var d = new Date(dateStr+"T12:00:00");
-    return isNaN(d.getTime()) ? null : d.toISOString();
-  }
 
   var effStatusCache = null;
   var effStatusCacheVersion = -1;
@@ -1247,14 +1231,9 @@
       var kOv = isOverdue(k);
       return [k.id,k.title,k.status,k.priority,k.date,kOv?1:0,k.assignees.map(function(a){return a.staffId;}).join(",")].join("~");
     }).join(";");
-    var groupSig = "";
-    if(showGroupTag){
-      var tg = Store.getGroupById(item.groupId);
-      groupSig = (groupsById[item.groupId]||"Unfiled") + (tg?tg.color:"");
-    }
     return [
       todayISO(), item.title, item.priority, item.date, eff, overdue?1:0, expanded?1:0,
-      state.selected[item.id]?1:0, groupSig,
+      state.selected[item.id]?1:0, showGroupTag?(groupsById[item.groupId]||"Unfiled"):"",
       assigneeSig, kidsSig
     ].join("§");
   }
@@ -1407,12 +1386,9 @@
     }
     html += '<span class="row-title'+(eff==="done"?" done":"")+'" dir="auto">'+esc(item.title||"Untitled")+'</span>';
     html += priorityPillHtml(item.priority);
-    if(showGroupTag){
-      var tagGroup = Store.getGroupById(item.groupId);
-      html += '<span class="tag tag-group" dir="auto">'+(tagGroup?'<span class="tag-group-dot" style="background:'+tagGroup.color+'"></span>':'')+esc(groupsById[item.groupId]||"Unfiled")+'</span>';
-    }
+    if(showGroupTag) html += '<span class="tag tag-group" dir="auto">'+esc(groupsById[item.groupId]||"Unfiled")+'</span>';
     html += '<span class="avatars">'+item.assignees.map(function(a){ return assigneeAvatarHtml(a,true); }).join("")+'</span>';
-    html += '<span class="row-date'+(overdue?" overdue":"")+'" title="'+(item.date?"Due "+fmtDate(item.date):"")+'">'+relDate(item)+'</span>';
+    html += '<span class="row-date'+(overdue?" overdue":"")+'" title="'+fmtDate(item.date)+'">'+relDate(item)+'</span>';
     html += '</div>';
     if(kids.length){
       html += '<div class="children-wrap'+(expanded?" expanded":"")+'" data-children-for="'+item.id+'"><div class="children-wrap-inner">';
@@ -1430,7 +1406,7 @@
     html += '<span class="row-title small'+(k.status==="done"?" done":"")+'" dir="auto">'+esc(k.title||"Untitled")+'</span>';
     html += priorityPillHtml(k.priority);
     html += '<span class="avatars">'+k.assignees.map(function(a){ return assigneeAvatarHtml(a,true); }).join("")+'</span>';
-    html += '<span class="row-date'+(overdue?" overdue":"")+'" title="'+(k.date?"Due "+fmtDate(k.date):"")+'">'+relDate(k)+'</span>';
+    html += '<span class="row-date'+(overdue?" overdue":"")+'" title="'+fmtDate(k.date)+'">'+relDate(k)+'</span>';
     html += '</div>';
     return html;
   }
@@ -1640,38 +1616,18 @@
     return byStaff;
   }
 
-  function renderTeamGroupFilterTrigger(){
-    var wrap = document.getElementById("team-group-filter-wrap");
-    if(!wrap) return;
-    var g = state.teamGroupFilter ? Store.getGroupById(state.teamGroupFilter) : null;
-    var label = g ? g.name : "All categories";
-    var dot = g ? '<span class="tag-group-dot" style="background:'+g.color+';"></span>' : '';
-    wrap.innerHTML = '<button type="button" class="cselect-trigger team-filter-trigger" id="team-group-filter-trigger">'
-      + dot + '<span class="cselect-label" dir="auto">'+esc(label)+'</span>'+CHEVRON_SVG+'</button>';
-  }
-  function openTeamGroupFilterPopover(triggerEl){
+  function populateTeamGroupFilter(){
+    var sel = document.getElementById("team-group-filter");
+    if(!sel) return;
     var current = state.teamGroupFilter || "";
-    var opts = [{id:"", name:"All categories", color:null}].concat(Store.getGroups());
-    var html = '<div class="cselect-panel">' + opts.map(function(g){
-      var dot = g.color ? '<span class="tag-group-dot" style="background:'+g.color+';"></span>' : '';
-      return '<button type="button" class="cselect-opt'+(g.id===current?" selected":"")+'" data-team-filter-opt="'+esc(g.id)+'">'+dot+'<span dir="auto">'+esc(g.name)+'</span></button>';
-    }).join("") + '</div>';
-    popoverRoot.innerHTML = html;
-    popoverRoot.classList.add("show");
-    positionPopover(triggerEl, 200);
-    openTrigger = triggerEl;
-    popoverRoot.querySelectorAll("[data-team-filter-opt]").forEach(function(btn){
-      btn.onclick = function(){
-        state.teamGroupFilter = btn.getAttribute("data-team-filter-opt") || null;
-        saveViewState();
-        closePopover();
-        renderTeam();
-      };
-    });
+    var html = '<option value="">All categories</option>';
+    Store.getGroups().forEach(function(g){ html += '<option value="'+esc(g.id)+'">'+esc(g.name)+'</option>'; });
+    sel.innerHTML = html;
+    sel.value = current;
   }
 
   function renderTeam(){
-    renderTeamGroupFilterTrigger();
+    populateTeamGroupFilter();
     var cardsEl = document.getElementById("staff-grid");
     var tableEl = document.getElementById("team-table-wrap");
     var isTable = state.teamView === "table";
@@ -1682,34 +1638,6 @@
     if(isTable) renderTeamTable(); else renderStaffCards();
   }
 
-  function personCategoryTagsHtml(assigned){
-    if(state.teamGroupFilter) return "";
-    var counts = {};
-    assigned.forEach(function(it){
-      var gid = effectiveGroupId(it) || "";
-      counts[gid] = (counts[gid]||0) + 1;
-    });
-    var keys = Object.keys(counts);
-    if(!keys.length) return "";
-    keys.sort(function(a,b){ return counts[b]-counts[a]; });
-    var MAX_TAGS = 3;
-    var shown = keys.slice(0, MAX_TAGS);
-    var extra = keys.length - shown.length;
-    var html = '<div class="staff-card-tags">';
-    shown.forEach(function(gid){
-      if(gid===""){
-        html += '<span class="tag tag-group">Unfiled</span>';
-      } else {
-        var g = Store.getGroupById(gid);
-        if(!g) return;
-        html += '<span class="tag tag-group" dir="auto"><span class="tag-group-dot" style="background:'+g.color+'"></span>'+esc(g.name)+'</span>';
-      }
-    });
-    if(extra>0) html += '<span class="tag tag-group-more">+'+extra+'</span>';
-    html += '</div>';
-    return html;
-  }
-
   function renderStaffCards(){
     var container = document.getElementById("staff-grid");
     var staff = Store.getStaff();
@@ -1718,10 +1646,7 @@
     var html = "";
     staff.forEach(function(person){
       var st = stats.get(person.id) || {total:0,open:0,inProgress:0,done:0,overdue:0,criticalOpen:0,lead:0,sample:0,medianMs:null};
-      var assigned = allItems.filter(function(it){
-        if(state.teamGroupFilter && effectiveGroupId(it) !== state.teamGroupFilter) return false;
-        return it.assignees.some(function(a){ return a.staffId===person.id; });
-      });
+      var assigned = allItems.filter(function(it){ return it.assignees.some(function(a){ return a.staffId===person.id; }); });
       var pct = st.total ? Math.round((st.done/st.total)*100) : 0;
       var turnaroundHtml = st.sample
         ? formatDuration(st.medianMs) + ' <span class="stat-num-sample">(n='+st.sample+')</span>'
@@ -1730,7 +1655,6 @@
       html += '<div class="staff-card" data-person-card="'+person.id+'" tabindex="0">';
       html += '<button class="staff-remove" data-remove-staff="'+person.id+'" title="Remove">&times;</button>';
       html += '<div class="staff-card-head">'+personRoundelHtml(person.id)+'<div><div class="staff-name" dir="auto">'+esc(person.name)+'</div><div class="staff-dept" dir="auto">'+esc(person.dept)+'</div></div></div>';
-      html += personCategoryTagsHtml(assigned);
       html += '<div class="staff-stats">';
       html += '<div><div class="stat-num">'+st.total+'</div><div class="stat-label">Total assigned</div></div>';
       html += '<div><div class="stat-num">'+st.open+'</div><div class="stat-label">Open</div></div>';
@@ -1741,7 +1665,7 @@
       html += '<div class="progress-bar"><div class="progress-fill" style="width:'+pct+'%"></div></div>';
       html += '<div class="staff-items">';
       if(assigned.length===0){ html += '<div class="staff-item-row">Nothing assigned yet</div>'; }
-      else { assigned.forEach(function(it){ var eff=effectiveStatus(it); html += '<div class="staff-item-row"><span class="tag tag-'+eff+'">'+esc(STATUS_LABEL[eff]||eff)+'</span><span dir="auto">'+esc(it.title||"Untitled")+'</span></div>'; }); }
+      else { assigned.forEach(function(it){ html += '<div class="staff-item-row"><span class="status-dot-mini '+effectiveStatus(it)+'"></span><span dir="auto">'+esc(it.title||"Untitled")+'</span></div>'; }); }
       html += '</div></div>';
     });
     html += '<button class="add-tile" id="add-staff-btn">+ Add person</button>';
@@ -2013,32 +1937,6 @@
     html += '<div class="assignee-add-row">'+addAssigneeTriggerHtml(itemId)+'</div>';
     return html;
   }
-  function assignedDateOf(item){
-    var a = item.assignees.filter(function(x){ return x.assignedAt; })[0];
-    if(!a) return null;
-    var d = new Date(a.assignedAt);
-    return isNaN(d.getTime()) ? null : localISO(d);
-  }
-  function assignedDateTriggerHtml(itemId, iso){
-    return '<button type="button" class="cselect-trigger date-trigger" data-assigned-date="'+itemId+'" data-value="'+esc(iso||"")+'"><span class="cselect-label">'+(iso?fmtDate(iso):"Set date")+'</span>'+CHEVRON_SVG+'</button>';
-  }
-  function turnaroundFieldHtml(item){
-    if(!item.assignees.length) return "";
-    var assignedIso = assignedDateOf(item);
-    if(!assignedIso) return "";
-    var assignedMs = Date.parse(item.assignees.filter(function(a){ return a.assignedAt; })[0].assignedAt);
-    if(effectiveStatus(item)==="done"){
-      var compAt = completionInstant(item);
-      var compMs = compAt ? Date.parse(compAt) : NaN;
-      if(isNaN(compMs)) return "";
-      var d = compMs - assignedMs;
-      if(!isFinite(d) || d<0) return "";
-      return '<div class="field"><label>Turnaround</label><div class="turnaround-value">Delivered in '+formatDuration(d)+'</div></div>';
-    }
-    var d2 = Date.now() - assignedMs;
-    if(!isFinite(d2) || d2<0) return "";
-    return '<div class="field"><label>Turnaround</label><div class="turnaround-value">Open '+formatDuration(d2)+' so far</div></div>';
-  }
 
   function buildPanel(id){
     var item = Store.getItem(id);
@@ -2051,15 +1949,14 @@
     html += '<button class="detail-close" id="detail-close-btn">&times;</button><div style="clear:both;height:6px;"></div>';
     if(parent){ html += '<div class="parent-link" id="parent-link" dir="auto">&larr; part of: '+esc(parent.title||"Untitled")+'</div>'; }
     html += '<div class="field"><input type="text" class="title-input" id="f-title" dir="auto" placeholder="Untitled" value="'+esc(item.title)+'"></div>';
-    html += '<div class="field-row"><div class="field"><label>Due date</label>'+datePickerTriggerHtml(item.id, item.date)+'</div><div class="field"><label>Assigned on</label>'+assignedDateTriggerHtml(item.id, assignedDateOf(item))+'</div></div>';
+    html += '<div class="field-row"><div class="field"><label>Date</label>'+datePickerTriggerHtml(item.id, item.date)+'</div><div class="field"><label>Classification</label>'+cselectTriggerHtml("group", item.id, item.groupId)+'</div></div>';
 
     if(kids.length){
       var eff = effectiveStatus(item);
-      html += '<div class="field-row"><div class="field"><label>Classification</label>'+cselectTriggerHtml("group", item.id, item.groupId)+'</div><div class="field"><label>Status <span class="hint">(from branches)</span></label><div class="tag tag-'+eff+'" style="margin-top:2px;">'+STATUS_LABEL[eff]+'</div></div></div>';
+      html += '<div class="field-row"><div class="field"><label>Status <span class="hint">(from branches)</span></label><div class="tag tag-'+eff+'" style="margin-top:2px;">'+STATUS_LABEL[eff]+'</div></div><div class="field"><label>Priority</label>'+cselectTriggerHtml("priority", item.id, item.priority)+'</div></div>';
     } else {
-      html += '<div class="field-row"><div class="field"><label>Classification</label>'+cselectTriggerHtml("group", item.id, item.groupId)+'</div><div class="field"><label>Status</label>'+cselectTriggerHtml("status", item.id, item.status)+'</div></div>';
+      html += '<div class="field-row"><div class="field"><label>Status</label>'+cselectTriggerHtml("status", item.id, item.status)+'</div><div class="field"><label>Priority</label>'+cselectTriggerHtml("priority", item.id, item.priority)+'</div></div>';
     }
-    html += '<div class="field-row"><div class="field"><label>Priority</label>'+cselectTriggerHtml("priority", item.id, item.priority)+'</div>'+turnaroundFieldHtml(item)+'</div>';
 
     html += '<div class="field"><label>Assigned to</label>'+assigneeEditorHtml(item.id)+'</div>';
     html += '<div class="field"><label>Notes</label><textarea id="f-notes" dir="auto">'+esc(item.notes)+'</textarea></div>';
@@ -2080,9 +1977,8 @@
     var html = '<div class="branch-edit-row" data-branch-id="'+k.id+'">';
     html += '<input type="text" data-b-field="title" dir="auto" placeholder="What does this branch cover?" value="'+esc(k.title)+'">';
     html += '<div class="field" style="margin-bottom:8px;"><label style="margin-bottom:4px;">Assigned to</label>'+assigneeEditorHtml(k.id)+'</div>';
-    html += '<div class="field-row"><div class="field"><label>Due date</label>'+datePickerTriggerHtml(k.id, k.date)+'</div><div class="field"><label>Assigned on</label>'+assignedDateTriggerHtml(k.id, assignedDateOf(k))+'</div></div>';
-    html += '<div class="field-row"><div class="field"><label>Status</label>'+cselectTriggerHtml("status", k.id, k.status)+'</div><div class="field"><label>Priority</label>'+cselectTriggerHtml("priority", k.id, k.priority)+'</div></div>';
-    html += turnaroundFieldHtml(k);
+    html += '<div class="field-row"><div class="field"><label>Date</label>'+datePickerTriggerHtml(k.id, k.date)+'</div><div class="field"><label>Status</label>'+cselectTriggerHtml("status", k.id, k.status)+'</div></div>';
+    html += '<div class="field"><label>Priority</label>'+cselectTriggerHtml("priority", k.id, k.priority)+'</div>';
     html += '<div class="branch-edit-foot"><button class="icon-btn-sm" data-remove-branch="'+k.id+'">Remove branch</button></div>';
     html += '</div>';
     return html;
@@ -2132,16 +2028,6 @@
         var p2 = rem.getAttribute("data-remove-assignee").split("|");
         Store.removeAssignee(p2[0], p2[1]);
         buildPanel(currentItemId); renderAll();
-        return;
-      }
-      var assignedBtn = e.target.closest("[data-assigned-date]");
-      if(assignedBtn){
-        var itemId3 = assignedBtn.getAttribute("data-assigned-date");
-        openDatePickerFor(assignedBtn, function(iso){
-          Store.updateAssignedDate(itemId3, iso);
-          buildPanel(currentItemId);
-          renderAll();
-        });
         return;
       }
     };
@@ -2253,19 +2139,18 @@
     renderAll();
   }
 
-  function openDatePickerFor(triggerEl, applyFn){
+  function openDatePickerFor(triggerEl){
     var itemId = triggerEl.getAttribute("data-datepicker");
     var iso = triggerEl.getAttribute("data-value");
     var base = iso ? new Date(iso+"T00:00:00") : new Date();
     dpYear = base.getFullYear(); dpMonth = base.getMonth();
-    var apply = applyFn || function(newIso){ Store.updateItem(itemId, {date:newIso||""}); renderAll(); };
-    renderDatePickerPanel(triggerEl, iso, apply);
+    renderDatePickerPanel(triggerEl, itemId, iso);
     popoverRoot.classList.add("show");
     positionPopover(triggerEl, 230);
     openTrigger = triggerEl;
   }
 
-  function renderDatePickerPanel(triggerEl, selectedIso, applyFn){
+  function renderDatePickerPanel(triggerEl, itemId, selectedIso){
     var monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
     var startWeekday = new Date(dpYear, dpMonth, 1).getDay();
     var daysInMonth = new Date(dpYear, dpMonth+1, 0).getDate();
@@ -2292,24 +2177,26 @@
         dpMonth += parseInt(btn.getAttribute("data-dp-nav"),10);
         if(dpMonth<0){ dpMonth=11; dpYear--; }
         if(dpMonth>11){ dpMonth=0; dpYear++; }
-        renderDatePickerPanel(triggerEl, selectedIso, applyFn);
+        renderDatePickerPanel(triggerEl, itemId, selectedIso);
       };
     });
     popoverRoot.querySelectorAll("[data-dp-day]").forEach(function(btn){
       btn.onclick = function(){
         var iso = btn.getAttribute("data-dp-day");
+        Store.updateItem(itemId, {date:iso});
         triggerEl.setAttribute("data-value", iso);
         var lbl = triggerEl.querySelector(".cselect-label"); if(lbl) lbl.textContent = fmtDate(iso);
         closePopover();
-        applyFn(iso);
+        renderAll();
       };
     });
     var clearBtn = popoverRoot.querySelector("[data-dp-clear]");
     clearBtn.onclick = function(){
+      Store.updateItem(itemId, {date:""});
       triggerEl.setAttribute("data-value", "");
       var lbl = triggerEl.querySelector(".cselect-label"); if(lbl) lbl.textContent = "Set date";
       closePopover();
-      applyFn(null);
+      renderAll();
     };
   }
 
@@ -2405,7 +2292,7 @@
 
   function openCreatePanel(){
     var defaultGroupId = (state.rail!=="all" && state.rail!=="overview" && state.rail!=="team") ? state.rail : (Store.getGroups()[0] ? Store.getGroups()[0].id : null);
-    createDraft = { title:"", groupId:defaultGroupId, priority:"medium", assignees:[], branches:[], date:null, dateSuggestion:null, dismissedSuggestionKey:null, assignedDate:todayISO() };
+    createDraft = { title:"", groupId:defaultGroupId, priority:"medium", assignees:[], branches:[], date:null, dateSuggestion:null, dismissedSuggestionKey:null };
     buildCreatePanel();
     createPanelEl.classList.add("show");
     backdropEl.classList.add("show");
@@ -2470,7 +2357,6 @@
     html += '</div></div>';
 
     html += '<div class="field"><label>Assigned to</label><div class="avatar-pick-row">'+staffAvatarPickHtml(createDraft.assignees)+'</div></div>';
-    html += '<div class="field"><label>Assigned on</label><button type="button" class="cselect-trigger date-trigger" id="c-assigned-date-trigger" data-value="'+esc(createDraft.assignedDate||"")+'"><span class="cselect-label">'+(createDraft.assignedDate?fmtDate(createDraft.assignedDate):"Set date")+'</span>'+CHEVRON_SVG+'</button></div>';
 
     html += '<div class="section-title">Branches <span style="font-weight:500;">'+createDraft.branches.length+'</span></div>';
     html += '<div id="c-branch-list">';
@@ -2514,13 +2400,6 @@
   function wireCreatePanelEvents(){
     document.getElementById("create-close-btn").onclick = closeCreatePanel;
     document.getElementById("create-cancel-btn").onclick = closeCreatePanel;
-    document.getElementById("c-assigned-date-trigger").addEventListener("click", function(e){
-      openDatePickerFor(e.currentTarget, function(iso){
-        createDraft.assignedDate = iso;
-        buildCreatePanel();
-        refocusCreateTitle();
-      });
-    });
     document.getElementById("c-title").addEventListener("input", function(e){
       var val = e.target.value;
       createDraft.title = val;
@@ -2592,21 +2471,17 @@
 
   function submitCreate(keepOpen){
     if(!createDraft.title.trim()){ document.getElementById("c-title").focus(); return; }
-    var assignedInstant = createDraft.assignedDate ? localDateToInstant(createDraft.assignedDate) : null;
-    var stampAssignees = function(list){
-      return list.map(function(a){ return assignedInstant ? Object.assign({}, a, {assignedAt:assignedInstant}) : a; });
-    };
-    var patch = { title:createDraft.title.trim(), groupId:createDraft.groupId, priority:createDraft.priority, assignees:stampAssignees(createDraft.assignees) };
+    var patch = { title:createDraft.title.trim(), groupId:createDraft.groupId, priority:createDraft.priority, assignees:createDraft.assignees.slice() };
     if(createDraft.date) patch.date = createDraft.date;
     var parent = Store.createItem(patch);
     createDraft.branches.forEach(function(b){
       if(!b.title.trim()) return;
-      Store.createItem({ parentId:parent.id, groupId:createDraft.groupId, title:b.title.trim(), priority:createDraft.priority, status:"todo", assignees:stampAssignees(b.assignees) });
+      Store.createItem({ parentId:parent.id, groupId:createDraft.groupId, title:b.title.trim(), priority:createDraft.priority, status:"todo", assignees:b.assignees.slice() });
     });
     renderAll();
     if(keepOpen){
       var groupId = createDraft.groupId;
-      createDraft = { title:"", groupId:groupId, priority:"medium", assignees:[], branches:[], date:null, dateSuggestion:null, dismissedSuggestionKey:null, assignedDate:todayISO() };
+      createDraft = { title:"", groupId:groupId, priority:"medium", assignees:[], branches:[], date:null, dateSuggestion:null, dismissedSuggestionKey:null };
       buildCreatePanel();
       refocusCreateTitle();
     } else {
@@ -3761,9 +3636,8 @@
   document.getElementById("team-view-table-btn").addEventListener("click", function(){
     state.teamView = "table"; saveViewState(); renderTeam();
   });
-  document.getElementById("team-group-filter-wrap").addEventListener("click", function(e){
-    var trigger = e.target.closest("#team-group-filter-trigger");
-    if(trigger) openTeamGroupFilterPopover(trigger);
+  document.getElementById("team-group-filter").addEventListener("change", function(e){
+    state.teamGroupFilter = e.target.value || null; saveViewState(); renderTeam();
   });
   document.getElementById("team-table-wrap").addEventListener("click", function(e){
     var th = e.target.closest("[data-sort-key]");
