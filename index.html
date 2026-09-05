@@ -1665,10 +1665,18 @@ function queryUpcomingTop(item){ return !item.parentId && effectiveStatus(item)!
 function queryAnytimeTop(item){ return !item.parentId && effectiveStatus(item)!=="done" && !item.due; }
 function queryAllTop(item){ return !item.parentId; }
 function queryGroupTop(gid){ return function(item){ return !item.parentId && effectiveGroupId(item)===gid; }; }
+function hasNoAssignees(it){ return !(it.assignees && it.assignees.length); }
+function isUnassignedTop(it){
+  if(effectiveStatus(it)==="done") return false;
+  if(!hasNoAssignees(it)) return false;
+  var kids = childrenOf(it.id);
+  if(!kids.length) return true;
+  return kids.every(hasNoAssignees);
+}
 var TRIAGE_FILTERS = {
   critical: function(it){ return it.priority==="critical" && effectiveStatus(it)!=="done"; },
   overdue: function(it){ return isOverdue(it); },
-  unassigned: function(it){ return !(it.assignees && it.assignees.length) && effectiveStatus(it)!=="done"; }
+  unassigned: isUnassignedTop
 };
 function applyCommonFilters(items){
   var q = (App.searchQuery||"").toLowerCase().trim();
@@ -1951,7 +1959,7 @@ function computeStatStrip(baseItems){
     if(isOverdue(it)) overdue++;
     if(it.due===todayISO() && st!=="done") dueToday++;
     if(st!=="done" && it.priority==="critical") critical++;
-    if(st!=="done" && !(it.assignees && it.assignees.length)) unassigned++;
+    if(isUnassignedTop(it)) unassigned++;
   });
   return {open:open, overdue:overdue, dueToday:dueToday, done:done, critical:critical, unassigned:unassigned};
 }
